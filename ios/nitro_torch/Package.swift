@@ -1,0 +1,30 @@
+// swift-tools-version: 5.9
+import PackageDescription
+
+let package = Package(
+    name: "nitro_torch",
+    platforms: [.iOS(.v13)],
+    products: [
+        .library(name: "nitro-torch", targets: ["nitro_torch"]),
+    ],
+    targets: [
+        // C/C++ bridge — SPM requires Swift and C++ in separate targets.
+        // nitro headers (nitro.h, dart_api_dl.h …) are copied into include/
+        // by `nitrogen link`, so no extra header search path is needed.
+        .target(
+            name: "NitroTorchCpp",
+            path: "Sources/NitroTorchCpp",
+            publicHeadersPath: "include",
+            cxxSettings: [
+                .headerSearchPath("include"),
+                .unsafeFlags(["-std=c++17"])
+            ]
+        ),
+        // Swift implementation + generated bridge.
+        .target(
+            name: "nitro_torch",
+            dependencies: ["NitroTorchCpp"],
+            path: "Sources/NitroTorch"
+        ),
+    ]
+)

@@ -1,0 +1,1 @@
+../../lib/src/generated/swift/nitro_torch.bridge.g.swift
