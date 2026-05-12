@@ -212,7 +212,7 @@ public func _nitro_torch_call_setLevel(_ level: Int64) -> Void {
 @_cdecl("_nitro_torch_call_maxLevel")
 public func _nitro_torch_call_maxLevel() -> Int64 {
     guard let impl = NitroTorchRegistry.impl else { return 0 }
-    return impl.maxLevel()
+    return impl.maxLevel() ?? 0
 }
 
 @_cdecl("_nitro_torch_register_onLevelChanged_stream")

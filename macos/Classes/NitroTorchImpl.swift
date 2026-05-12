@@ -1,13 +1,115 @@
 import Foundation
+import AVFoundation
+import Combine
 
-/// Native implementation of HybridNitroTorchProtocol on macOS.
+/// Native implementation of HybridNitroTorchProtocol for macOS.
+/// Uses AVCaptureDevice for any Mac that exposes torch hardware.
+/// Most Macs have no torch; withDevice() raises "NoFlashAvailable" in that case.
 public class NitroTorchImpl: NSObject, HybridNitroTorchProtocol {
 
-    public func add(a: Double, b: Double) -> Double {
-        return a + b
+    // ── Constants ──────────────────────────────────────────────────────────────
+
+    private static let kSteps: Int64 = 10
+
+    // ── Stream subjects ────────────────────────────────────────────────────────
+
+    private let stateSubject = PassthroughSubject<TorchState, Never>()
+    private let levelSubject = PassthroughSubject<TorchLevel, Never>()
+    private var torchObserver: AnyCancellable?
+
+    public var onTorchStateChanged: AnyPublisher<TorchState, Never> {
+        stateSubject.eraseToAnyPublisher()
+    }
+    public var onLevelChanged: AnyPublisher<TorchLevel, Never> {
+        levelSubject.eraseToAnyPublisher()
     }
 
-    public func getGreeting(name: String) async throws -> String {
-        return "Hello, \(name) from macOS!"
+    // ── State ──────────────────────────────────────────────────────────────────
+
+    private var currentStep: Int64 = NitroTorchImpl.kSteps
+
+    // ── Init ───────────────────────────────────────────────────────────────────
+
+    override public init() {
+        super.init()
+        setupObserver()
+    }
+
+    deinit { torchObserver?.cancel() }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private var torchDevice: AVCaptureDevice? {
+        guard let d = AVCaptureDevice.default(for: .video), d.hasTorch else { return nil }
+        return d
+    }
+
+    private func setupObserver() {
+        guard let device = AVCaptureDevice.default(for: .video), device.hasTorch else { return }
+        torchObserver = device.publisher(for: \.isTorchActive)
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] active in
+                self?.stateSubject.send(active ? .on : .off)
+            }
+    }
+
+    private func withDevice(_ block: (AVCaptureDevice) throws -> Void) {
+        guard let device = torchDevice else {
+            NSException.raise(.genericException,
+                format: "NoFlashAvailable: No torch hardware found on this Mac",
+                arguments: getVaList([]))
+            return
+        }
+        do {
+            try device.lockForConfiguration()
+            defer { device.unlockForConfiguration() }
+            try block(device)
+        } catch {
+            NSException.raise(.genericException,
+                format: "TorchError: %@",
+                arguments: getVaList([error.localizedDescription as CVarArg]))
+        }
+    }
+
+    // ── Protocol ───────────────────────────────────────────────────────────────
+
+    public func add(a: Double, b: Double) -> Double { a + b }
+
+    public func getGreeting(name: String) async throws -> String { "Hello, \(name) from macOS!" }
+
+    public func getStatus() -> Bool { torchDevice?.isTorchActive ?? false }
+
+    public func maxLevel() -> Int64? {
+        return torchDevice != nil ? Self.kSteps : nil
+    }
+
+    public func turnOn() {
+        withDevice { device in
+            let level = Float(currentStep) / Float(Self.kSteps)
+            try device.setTorchModeOn(level: level)
+        }
+    }
+
+    public func turnOff() {
+        withDevice { device in
+            device.torchMode = .off
+        }
+    }
+
+    public func toggle() {
+        getStatus() ? turnOff() : turnOn()
+    }
+
+    public func setLevel(level: Int64) {
+        let clamped = Swift.max(1, Swift.min(level, Self.kSteps))
+        currentStep = clamped
+        let floatLevel = Float(clamped) / Float(Self.kSteps)
+        withDevice { device in
+            if device.isTorchActive {
+                try device.setTorchModeOn(level: floatLevel)
+            }
+        }
+        levelSubject.send(TorchLevel(level: clamped, maxLevel: Self.kSteps))
     }
 }
