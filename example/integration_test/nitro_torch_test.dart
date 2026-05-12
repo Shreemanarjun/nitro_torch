@@ -43,14 +43,17 @@ void main() {
       expect(result, contains('Nitro'));
     });
 
-    test('getGreeting() called concurrently returns independent results', () async {
-      final results = await Future.wait([
-        torch.getGreeting('Alice'),
-        torch.getGreeting('Bob'),
-      ]);
-      expect(results[0], contains('Alice'));
-      expect(results[1], contains('Bob'));
-    });
+    test(
+      'getGreeting() called concurrently returns independent results',
+      () async {
+        final results = await Future.wait([
+          torch.getGreeting('Alice'),
+          torch.getGreeting('Bob'),
+        ]);
+        expect(results[0], contains('Alice'));
+        expect(results[1], contains('Bob'));
+      },
+    );
   });
 
   // ─── Hardware capabilities ─────────────────────────────────────────────────
@@ -181,7 +184,8 @@ void main() {
   group('brightness levels', () {
     test('setLevel(1) does not throw when hardware supports levels', () {
       final max = torch.maxLevel();
-      if (max == null || max < 1) return; // null or 0 = unsupported; 1 = on/off only
+      if (max == null || max < 1)
+        return; // null or 0 = unsupported; 1 = on/off only
       try {
         torch.turnOn();
         torch.setLevel(1);
@@ -195,7 +199,8 @@ void main() {
 
     test('setLevel(maxLevel) does not throw when hardware supports levels', () {
       final max = torch.maxLevel();
-      if (max == null || max < 1) return; // null or 0 = unsupported; 1 = on/off only
+      if (max == null || max < 1)
+        return; // null or 0 = unsupported; 1 = on/off only
       try {
         torch.turnOn();
         torch.setLevel(max);
@@ -209,7 +214,8 @@ void main() {
 
     test('setLevel(mid) does not throw when hardware supports levels', () {
       final max = torch.maxLevel();
-      if (max == null || max < 1) return; // null or 0 = unsupported; 1 = on/off only
+      if (max == null || max < 1)
+        return; // null or 0 = unsupported; 1 = on/off only
       final mid = (max / 2).ceil();
       try {
         torch.turnOn();
@@ -240,7 +246,9 @@ void main() {
         });
 
         torch.turnOn();
-        final state = await completer.future.timeout(const Duration(seconds: 4));
+        final state = await completer.future.timeout(
+          const Duration(seconds: 4),
+        );
         expect(state, equals(TorchState.on));
       } catch (e) {
         if (_noFlash(e) || _isTimeout(e)) return;
@@ -251,112 +259,131 @@ void main() {
       }
     });
 
-    test('onTorchStateChanged() emits TorchState.off after turnOff()', () async {
-      StreamSubscription<TorchState>? sub;
-      try {
-        torch.turnOn();
-        await Future<void>.delayed(const Duration(milliseconds: 200));
+    test(
+      'onTorchStateChanged() emits TorchState.off after turnOff()',
+      () async {
+        StreamSubscription<TorchState>? sub;
+        try {
+          torch.turnOn();
+          await Future<void>.delayed(const Duration(milliseconds: 200));
 
-        final completer = Completer<TorchState>();
-        sub = torch.onTorchStateChanged().listen((state) {
-          if (state == TorchState.off && !completer.isCompleted) {
-            completer.complete(state);
-          }
-        });
+          final completer = Completer<TorchState>();
+          sub = torch.onTorchStateChanged().listen((state) {
+            if (state == TorchState.off && !completer.isCompleted) {
+              completer.complete(state);
+            }
+          });
 
-        torch.turnOff();
-        final state = await completer.future.timeout(const Duration(seconds: 4));
-        expect(state, equals(TorchState.off));
-      } catch (e) {
-        if (_noFlash(e) || _isTimeout(e)) return;
-        rethrow;
-      } finally {
-        await sub?.cancel();
-      }
-    });
+          torch.turnOff();
+          final state = await completer.future.timeout(
+            const Duration(seconds: 4),
+          );
+          expect(state, equals(TorchState.off));
+        } catch (e) {
+          if (_noFlash(e) || _isTimeout(e)) return;
+          rethrow;
+        } finally {
+          await sub?.cancel();
+        }
+      },
+    );
 
-    test('onTorchStateChanged() emits both on and off events in sequence', () async {
-      final events = <TorchState>[];
-      StreamSubscription<TorchState>? sub;
-      try {
-        _safeOff(torch);
-        await Future<void>.delayed(const Duration(milliseconds: 200));
+    test(
+      'onTorchStateChanged() emits both on and off events in sequence',
+      () async {
+        final events = <TorchState>[];
+        StreamSubscription<TorchState>? sub;
+        try {
+          _safeOff(torch);
+          await Future<void>.delayed(const Duration(milliseconds: 200));
 
-        final gotTwo = Completer<void>();
-        sub = torch.onTorchStateChanged().listen((state) {
-          events.add(state);
-          if (events.length >= 2 && !gotTwo.isCompleted) gotTwo.complete();
-        });
+          final gotTwo = Completer<void>();
+          sub = torch.onTorchStateChanged().listen((state) {
+            events.add(state);
+            if (events.length >= 2 && !gotTwo.isCompleted) gotTwo.complete();
+          });
 
-        torch.turnOn();
-        await Future<void>.delayed(const Duration(milliseconds: 300));
-        torch.turnOff();
-        await gotTwo.future.timeout(const Duration(seconds: 5));
+          torch.turnOn();
+          await Future<void>.delayed(const Duration(milliseconds: 300));
+          torch.turnOff();
+          await gotTwo.future.timeout(const Duration(seconds: 5));
 
-        expect(events, contains(TorchState.on));
-        expect(events, contains(TorchState.off));
-      } catch (e) {
-        if (_noFlash(e) || _isTimeout(e)) return;
-        rethrow;
-      } finally {
-        await sub?.cancel();
-      }
-    });
+          expect(events, contains(TorchState.on));
+          expect(events, contains(TorchState.off));
+        } catch (e) {
+          if (_noFlash(e) || _isTimeout(e)) return;
+          rethrow;
+        } finally {
+          await sub?.cancel();
+        }
+      },
+    );
 
-    test('onLevelChanged() emits TorchLevel with valid fields after setLevel()', () async {
-      final max = torch.maxLevel();
-      if (max == null || max < 1) return; // null or 0 = unsupported; 1 = on/off only
+    test(
+      'onLevelChanged() emits TorchLevel with valid fields after setLevel()',
+      () async {
+        final max = torch.maxLevel();
+        if (max == null || max < 1)
+          return; // null or 0 = unsupported; 1 = on/off only
 
-      StreamSubscription<TorchLevel>? sub;
-      try {
-        torch.turnOn();
-        await Future<void>.delayed(const Duration(milliseconds: 200));
+        StreamSubscription<TorchLevel>? sub;
+        try {
+          torch.turnOn();
+          await Future<void>.delayed(const Duration(milliseconds: 200));
 
-        final completer = Completer<TorchLevel>();
-        sub = torch.onLevelChanged().listen((lvl) {
-          if (!completer.isCompleted) completer.complete(lvl);
-        });
+          final completer = Completer<TorchLevel>();
+          sub = torch.onLevelChanged().listen((lvl) {
+            if (!completer.isCompleted) completer.complete(lvl);
+          });
 
-        torch.setLevel(1);
-        final lvl = await completer.future.timeout(const Duration(seconds: 4));
+          torch.setLevel(1);
+          final lvl = await completer.future.timeout(
+            const Duration(seconds: 4),
+          );
 
-        expect(lvl.level, greaterThan(0));
-        expect(lvl.maxLevel, greaterThan(0));
-        expect(lvl.level, lessThanOrEqualTo(lvl.maxLevel));
-      } catch (e) {
-        if (_noFlash(e) || _isTimeout(e)) return;
-        rethrow;
-      } finally {
-        await sub?.cancel();
-        _safeOff(torch);
-      }
-    });
+          expect(lvl.level, greaterThan(0));
+          expect(lvl.maxLevel, greaterThan(0));
+          expect(lvl.level, lessThanOrEqualTo(lvl.maxLevel));
+        } catch (e) {
+          if (_noFlash(e) || _isTimeout(e)) return;
+          rethrow;
+        } finally {
+          await sub?.cancel();
+          _safeOff(torch);
+        }
+      },
+    );
 
-    test('onLevelChanged() maxLevel field is consistent with maxLevel()', () async {
-      final reported = torch.maxLevel();
-      if (reported == null || reported <= 1) return;
+    test(
+      'onLevelChanged() maxLevel field is consistent with maxLevel()',
+      () async {
+        final reported = torch.maxLevel();
+        if (reported == null || reported <= 1) return;
 
-      StreamSubscription<TorchLevel>? sub;
-      try {
-        torch.turnOn();
-        await Future<void>.delayed(const Duration(milliseconds: 200));
+        StreamSubscription<TorchLevel>? sub;
+        try {
+          torch.turnOn();
+          await Future<void>.delayed(const Duration(milliseconds: 200));
 
-        final completer = Completer<TorchLevel>();
-        sub = torch.onLevelChanged().listen((lvl) {
-          if (!completer.isCompleted) completer.complete(lvl);
-        });
+          final completer = Completer<TorchLevel>();
+          sub = torch.onLevelChanged().listen((lvl) {
+            if (!completer.isCompleted) completer.complete(lvl);
+          });
 
-        torch.setLevel(1);
-        final lvl = await completer.future.timeout(const Duration(seconds: 4));
-        expect(lvl.maxLevel, equals(reported));
-      } catch (e) {
-        if (_noFlash(e) || _isTimeout(e)) return;
-        rethrow;
-      } finally {
-        await sub?.cancel();
-        _safeOff(torch);
-      }
-    });
+          torch.setLevel(1);
+          final lvl = await completer.future.timeout(
+            const Duration(seconds: 4),
+          );
+          expect(lvl.maxLevel, equals(reported));
+        } catch (e) {
+          if (_noFlash(e) || _isTimeout(e)) return;
+          rethrow;
+        } finally {
+          await sub?.cancel();
+          _safeOff(torch);
+        }
+      },
+    );
 
     // Two concurrent subscriptions can be opened and cancelled independently.
     // The active (most-recently-registered) subscriber always receives events;
@@ -374,11 +401,14 @@ void main() {
 
         final completer = Completer<TorchState>();
         sub2 = torch.onTorchStateChanged().listen((s) {
-          if (s == TorchState.on && !completer.isCompleted) completer.complete(s);
+          if (s == TorchState.on && !completer.isCompleted)
+            completer.complete(s);
         });
 
         torch.turnOn();
-        final state = await completer.future.timeout(const Duration(seconds: 4));
+        final state = await completer.future.timeout(
+          const Duration(seconds: 4),
+        );
         expect(state, equals(TorchState.on));
       } catch (e) {
         if (_noFlash(e) || _isTimeout(e)) return;
@@ -414,11 +444,14 @@ void main() {
 
         final completer = Completer<TorchState>();
         sub = torch.onTorchStateChanged().listen((s) {
-          if (s == TorchState.on && !completer.isCompleted) completer.complete(s);
+          if (s == TorchState.on && !completer.isCompleted)
+            completer.complete(s);
         });
 
         torch.turnOn();
-        final state = await completer.future.timeout(const Duration(seconds: 4));
+        final state = await completer.future.timeout(
+          const Duration(seconds: 4),
+        );
         expect(state, equals(TorchState.on));
       } catch (e) {
         if (_noFlash(e) || _isTimeout(e)) return;
@@ -434,7 +467,8 @@ void main() {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 // Hardware state (getStatus) lags ~300 ms behind FFI command on Android/iOS.
-Future<void> _settle() => Future<void>.delayed(const Duration(milliseconds: 500));
+Future<void> _settle() =>
+    Future<void>.delayed(const Duration(milliseconds: 500));
 
 void _safeOff(NitroTorch torch) {
   try {
