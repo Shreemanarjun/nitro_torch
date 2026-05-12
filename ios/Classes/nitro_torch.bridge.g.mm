@@ -34,6 +34,13 @@ static void nitro_report_error(const char* name, const char* message, const char
 }
 }
 
+extern "C" {
+void nitro_torch_release_TorchLevel(void* ptr) {
+    if (!ptr) return;
+    free(ptr);
+}
+}
+
 #ifdef __ANDROID__
 #include <jni.h>
 #include <android/log.h>
@@ -47,6 +54,20 @@ static jmethodID g_exc_getName = nullptr;
 static jmethodID g_exc_getMessage = nullptr;
 static jmethodID g_mid_add_call = nullptr;
 static jmethodID g_mid_getGreeting_call = nullptr;
+static jmethodID g_mid_turnOn_call = nullptr;
+static jmethodID g_mid_turnOff_call = nullptr;
+static jmethodID g_mid_getStatus_call = nullptr;
+static jmethodID g_mid_toggle_call = nullptr;
+static jmethodID g_mid_setLevel_call = nullptr;
+static jmethodID g_mid_maxLevel_call = nullptr;
+static jmethodID g_mid_nitro_torch_register_on_level_changed_stream_call = nullptr;
+static jmethodID g_mid_nitro_torch_release_on_level_changed_stream_call = nullptr;
+static jmethodID g_mid_nitro_torch_register_on_torch_state_changed_stream_call = nullptr;
+static jmethodID g_mid_nitro_torch_release_on_torch_state_changed_stream_call = nullptr;
+static jclass g_cls_TorchLevel = nullptr;
+static jmethodID g_ctor_TorchLevel = nullptr;
+static jfieldID g_fid_TorchLevel_level = nullptr;
+static jfieldID g_fid_TorchLevel_maxLevel = nullptr;
 
 
 // RAII guard: auto-detaches a thread from the JVM when it exits.
@@ -88,6 +109,16 @@ static void nitro_report_jni_exception(JNIEnv* env, jthrowable ex) {
     env->DeleteLocalRef(ex);
 }
 
+static TorchLevel pack_TorchLevel_from_jni(JNIEnv* env, jobject obj) {
+    TorchLevel result;
+    result.level = env->GetLongField(obj, g_fid_TorchLevel_level);
+    result.maxLevel = env->GetLongField(obj, g_fid_TorchLevel_maxLevel);
+    return result;
+}
+static jobject unpack_TorchLevel_to_jni(JNIEnv* env, const TorchLevel* st) {
+    jobject result = env->NewObject(g_cls_TorchLevel, g_ctor_TorchLevel, (jlong)st->level, (jlong)st->maxLevel);
+    return result;
+}
 
 extern "C" {
 
@@ -164,6 +195,148 @@ const char* nitro_torch_get_greeting(const char* name) {
     return result;
 }
 
+void nitro_torch_turn_on(void) {
+    JNIEnv* env = GetEnv();
+    if (env == nullptr) return;
+    jmethodID methodId = g_mid_turnOn_call;
+    if (methodId == nullptr) { LOGE("Method not found: turnOn_call sig=()V"); return; }
+
+    nitro_torch_clear_error();
+    if (env->PushLocalFrame(16) != 0) return;
+    env->CallStaticVoidMethod(g_bridgeClass, methodId);
+    env->PopLocalFrame(nullptr);
+    if (env->ExceptionCheck()) { nitro_report_jni_exception(env, env->ExceptionOccurred()); }
+}
+
+void nitro_torch_turn_off(void) {
+    JNIEnv* env = GetEnv();
+    if (env == nullptr) return;
+    jmethodID methodId = g_mid_turnOff_call;
+    if (methodId == nullptr) { LOGE("Method not found: turnOff_call sig=()V"); return; }
+
+    nitro_torch_clear_error();
+    if (env->PushLocalFrame(16) != 0) return;
+    env->CallStaticVoidMethod(g_bridgeClass, methodId);
+    env->PopLocalFrame(nullptr);
+    if (env->ExceptionCheck()) { nitro_report_jni_exception(env, env->ExceptionOccurred()); }
+}
+
+int8_t nitro_torch_get_status(void) {
+    JNIEnv* env = GetEnv();
+    if (env == nullptr) return false;
+    jmethodID methodId = g_mid_getStatus_call;
+    if (methodId == nullptr) { LOGE("Method not found: getStatus_call sig=()Z"); return false; }
+
+    nitro_torch_clear_error();
+    if (env->PushLocalFrame(16) != 0) return false;
+    bool res = env->CallStaticBooleanMethod(g_bridgeClass, methodId);
+    if (env->ExceptionCheck()) {
+        nitro_report_jni_exception(env, env->ExceptionOccurred());
+        env->PopLocalFrame(nullptr);
+        return false;
+    }
+    env->PopLocalFrame(nullptr);
+    return res;
+}
+
+void nitro_torch_toggle(void) {
+    JNIEnv* env = GetEnv();
+    if (env == nullptr) return;
+    jmethodID methodId = g_mid_toggle_call;
+    if (methodId == nullptr) { LOGE("Method not found: toggle_call sig=()V"); return; }
+
+    nitro_torch_clear_error();
+    if (env->PushLocalFrame(16) != 0) return;
+    env->CallStaticVoidMethod(g_bridgeClass, methodId);
+    env->PopLocalFrame(nullptr);
+    if (env->ExceptionCheck()) { nitro_report_jni_exception(env, env->ExceptionOccurred()); }
+}
+
+void nitro_torch_set_level(int64_t level) {
+    JNIEnv* env = GetEnv();
+    if (env == nullptr) return;
+    jmethodID methodId = g_mid_setLevel_call;
+    if (methodId == nullptr) { LOGE("Method not found: setLevel_call sig=(J)V"); return; }
+
+    nitro_torch_clear_error();
+    if (env->PushLocalFrame(16) != 0) return;
+    env->CallStaticVoidMethod(g_bridgeClass, methodId, level);
+    env->PopLocalFrame(nullptr);
+    if (env->ExceptionCheck()) { nitro_report_jni_exception(env, env->ExceptionOccurred()); }
+}
+
+int64_t nitro_torch_max_level(void) {
+    JNIEnv* env = GetEnv();
+    if (env == nullptr) return 0;
+    jmethodID methodId = g_mid_maxLevel_call;
+    if (methodId == nullptr) { LOGE("Method not found: maxLevel_call sig=()J"); return 0; }
+
+    nitro_torch_clear_error();
+    if (env->PushLocalFrame(16) != 0) return 0;
+    env->PopLocalFrame(nullptr);
+    return 0;
+}
+
+void nitro_torch_register_on_level_changed_stream(int64_t dart_port) {
+    JNIEnv* env = GetEnv();
+    if (env == nullptr) return;
+    jmethodID methodId = g_mid_nitro_torch_register_on_level_changed_stream_call;
+    if (methodId == nullptr) { LOGE("Method not found: nitro_torch_register_on_level_changed_stream_call sig=(J)V"); return; }
+    env->CallStaticVoidMethod(g_bridgeClass, methodId, dart_port);
+}
+
+void nitro_torch_release_on_level_changed_stream(int64_t dart_port) {
+    JNIEnv* env = GetEnv();
+    if (env == nullptr) return;
+    jmethodID methodId = g_mid_nitro_torch_release_on_level_changed_stream_call;
+    if (methodId == nullptr) { LOGE("Method not found: nitro_torch_release_on_level_changed_stream_call sig=(J)V"); return; }
+    env->CallStaticVoidMethod(g_bridgeClass, methodId, dart_port);
+}
+
+JNIEXPORT void JNICALL Java_nitro_nitro_1torch_1module_NitroTorchJniBridge_emit_1onLevelChanged(JNIEnv* env, jobject thiz, jlong dartPort, jobject item) {
+    Dart_CObject obj;
+    TorchLevel* st_ptr = (TorchLevel*)malloc(sizeof(TorchLevel));
+    *st_ptr = pack_TorchLevel_from_jni(env, item);
+    // Check if pack_ threw an exception (e.g., heap ByteBuffer for @ZeroCopy)
+    if (env->ExceptionCheck()) {
+        env->ExceptionDescribe();
+        env->ExceptionClear();
+        free(st_ptr);
+        return;
+    }
+    obj.type = Dart_CObject_kInt64;
+    obj.value.as_int64 = (intptr_t)st_ptr;
+    Dart_PostCObject_DL(dartPort, &obj);
+}
+
+void nitro_torch_register_on_torch_state_changed_stream(int64_t dart_port) {
+    JNIEnv* env = GetEnv();
+    if (env == nullptr) return;
+    jmethodID methodId = g_mid_nitro_torch_register_on_torch_state_changed_stream_call;
+    if (methodId == nullptr) { LOGE("Method not found: nitro_torch_register_on_torch_state_changed_stream_call sig=(J)V"); return; }
+    env->CallStaticVoidMethod(g_bridgeClass, methodId, dart_port);
+}
+
+void nitro_torch_release_on_torch_state_changed_stream(int64_t dart_port) {
+    JNIEnv* env = GetEnv();
+    if (env == nullptr) return;
+    jmethodID methodId = g_mid_nitro_torch_release_on_torch_state_changed_stream_call;
+    if (methodId == nullptr) { LOGE("Method not found: nitro_torch_release_on_torch_state_changed_stream_call sig=(J)V"); return; }
+    env->CallStaticVoidMethod(g_bridgeClass, methodId, dart_port);
+}
+
+JNIEXPORT void JNICALL Java_nitro_nitro_1torch_1module_NitroTorchJniBridge_emit_1onTorchStateChanged(JNIEnv* env, jobject thiz, jlong dartPort, jobject item) {
+    Dart_CObject obj;
+    // item is a jobject (Kotlin enum). Extract its nativeValue Long field.
+    jclass enumCls = env->GetObjectClass(item);
+    jfieldID fid = enumCls ? env->GetFieldID(enumCls, "nativeValue", "J") : nullptr;
+    if (fid == nullptr) { LOGE("emit_onTorchStateChanged: cannot find nativeValue on TorchState"); if (enumCls) env->DeleteLocalRef(enumCls); return; }
+    obj.type = Dart_CObject_kInt64;
+    obj.value.as_int64 = (int64_t)env->GetLongField(item, fid);
+    env->DeleteLocalRef(enumCls);
+    Dart_PostCObject_DL(dartPort, &obj);
+}
+
 JNIEXPORT void JNICALL Java_nitro_nitro_1torch_1module_NitroTorchJniBridge_initialize(JNIEnv* env, jobject thiz, jclass bridgeClass) {
     if (g_bridgeClass == nullptr) {
         g_bridgeClass = (jclass)env->NewGlobalRef(bridgeClass);
@@ -175,8 +348,29 @@ JNIEXPORT void JNICALL Java_nitro_nitro_1torch_1module_NitroTorchJniBridge_initi
         // Cache bridge method IDs
         g_mid_add_call = env->GetStaticMethodID(g_bridgeClass, "add_call", "(DD)D");
         g_mid_getGreeting_call = env->GetStaticMethodID(g_bridgeClass, "getGreeting_call", "(Ljava/lang/String;)Ljava/lang/String;");
+        g_mid_turnOn_call = env->GetStaticMethodID(g_bridgeClass, "turnOn_call", "()V");
+        g_mid_turnOff_call = env->GetStaticMethodID(g_bridgeClass, "turnOff_call", "()V");
+        g_mid_getStatus_call = env->GetStaticMethodID(g_bridgeClass, "getStatus_call", "()Z");
+        g_mid_toggle_call = env->GetStaticMethodID(g_bridgeClass, "toggle_call", "()V");
+        g_mid_setLevel_call = env->GetStaticMethodID(g_bridgeClass, "setLevel_call", "(J)V");
+        g_mid_maxLevel_call = env->GetStaticMethodID(g_bridgeClass, "maxLevel_call", "()J");
+        g_mid_nitro_torch_register_on_level_changed_stream_call = env->GetStaticMethodID(g_bridgeClass, "nitro_torch_register_on_level_changed_stream_call", "(J)V");
+        g_mid_nitro_torch_release_on_level_changed_stream_call = env->GetStaticMethodID(g_bridgeClass, "nitro_torch_release_on_level_changed_stream_call", "(J)V");
+        g_mid_nitro_torch_register_on_torch_state_changed_stream_call = env->GetStaticMethodID(g_bridgeClass, "nitro_torch_register_on_torch_state_changed_stream_call", "(J)V");
+        g_mid_nitro_torch_release_on_torch_state_changed_stream_call = env->GetStaticMethodID(g_bridgeClass, "nitro_torch_release_on_torch_state_changed_stream_call", "(J)V");
     }
 
+    // Cache struct class + ctor + field IDs
+    {
+        jclass local_cls_TorchLevel = env->FindClass("nitro/nitro_torch_module/TorchLevel");
+        if (local_cls_TorchLevel != nullptr) {
+            g_cls_TorchLevel = (jclass)env->NewGlobalRef(local_cls_TorchLevel);
+            env->DeleteLocalRef(local_cls_TorchLevel);
+            g_ctor_TorchLevel = env->GetMethodID(g_cls_TorchLevel, "<init>", "(JJ)V");
+            g_fid_TorchLevel_level = env->GetFieldID(g_cls_TorchLevel, "level", "J");
+            g_fid_TorchLevel_maxLevel = env->GetFieldID(g_cls_TorchLevel, "maxLevel", "J");
+        }
+    }
 }
 
 } // extern "C"
@@ -210,6 +404,124 @@ const char* nitro_torch_get_greeting(const char* name) {
 #else
     return _nitro_torch_call_getGreeting(name);
 #endif
+}
+
+extern void _nitro_torch_call_turnOn(void);
+void nitro_torch_turn_on(void) {
+    nitro_torch_clear_error();
+#ifdef __OBJC__
+    @try {
+        _nitro_torch_call_turnOn();
+    } @catch (NSException* e) {
+        nitro_report_error([e.name UTF8String], [e.reason UTF8String], nullptr, nullptr);
+    }
+#else
+    _nitro_torch_call_turnOn();
+#endif
+}
+
+extern void _nitro_torch_call_turnOff(void);
+void nitro_torch_turn_off(void) {
+    nitro_torch_clear_error();
+#ifdef __OBJC__
+    @try {
+        _nitro_torch_call_turnOff();
+    } @catch (NSException* e) {
+        nitro_report_error([e.name UTF8String], [e.reason UTF8String], nullptr, nullptr);
+    }
+#else
+    _nitro_torch_call_turnOff();
+#endif
+}
+
+extern int8_t _nitro_torch_call_getStatus(void);
+int8_t nitro_torch_get_status(void) {
+    nitro_torch_clear_error();
+#ifdef __OBJC__
+    @try {
+        return _nitro_torch_call_getStatus();
+    } @catch (NSException* e) {
+        nitro_report_error([e.name UTF8String], [e.reason UTF8String], nullptr, nullptr);
+        return false;
+    }
+#else
+    return _nitro_torch_call_getStatus();
+#endif
+}
+
+extern void _nitro_torch_call_toggle(void);
+void nitro_torch_toggle(void) {
+    nitro_torch_clear_error();
+#ifdef __OBJC__
+    @try {
+        _nitro_torch_call_toggle();
+    } @catch (NSException* e) {
+        nitro_report_error([e.name UTF8String], [e.reason UTF8String], nullptr, nullptr);
+    }
+#else
+    _nitro_torch_call_toggle();
+#endif
+}
+
+extern void _nitro_torch_call_setLevel(int64_t level);
+void nitro_torch_set_level(int64_t level) {
+    nitro_torch_clear_error();
+#ifdef __OBJC__
+    @try {
+        _nitro_torch_call_setLevel(level);
+    } @catch (NSException* e) {
+        nitro_report_error([e.name UTF8String], [e.reason UTF8String], nullptr, nullptr);
+    }
+#else
+    _nitro_torch_call_setLevel(level);
+#endif
+}
+
+extern int64_t _nitro_torch_call_maxLevel(void);
+int64_t nitro_torch_max_level(void) {
+    nitro_torch_clear_error();
+#ifdef __OBJC__
+    @try {
+        return _nitro_torch_call_maxLevel();
+    } @catch (NSException* e) {
+        nitro_report_error([e.name UTF8String], [e.reason UTF8String], nullptr, nullptr);
+        return 0;
+    }
+#else
+    return _nitro_torch_call_maxLevel();
+#endif
+}
+
+void _emit_onLevelChanged_to_dart(int64_t dartPort, void* item) {
+    Dart_CObject obj;
+    obj.type = Dart_CObject_kInt64;
+    obj.value.as_int64 = (intptr_t)item;
+    Dart_PostCObject_DL(dartPort, &obj);
+}
+
+extern void _nitro_torch_register_onLevelChanged_stream(int64_t dartPort, void (*emitCb)(int64_t, void*));
+void nitro_torch_register_on_level_changed_stream(int64_t dart_port) {
+    _nitro_torch_register_onLevelChanged_stream(dart_port, _emit_onLevelChanged_to_dart);
+}
+extern void _nitro_torch_release_onLevelChanged_stream(int64_t dart_port);
+void nitro_torch_release_on_level_changed_stream(int64_t dart_port) {
+    _nitro_torch_release_onLevelChanged_stream(dart_port);
+}
+
+void _emit_onTorchStateChanged_to_dart(int64_t dartPort, void* item) {
+    Dart_CObject obj;
+    obj.type = Dart_CObject_kInt64;
+    obj.value.as_int64 = (int64_t)item;
+    Dart_PostCObject_DL(dartPort, &obj);
+}
+
+extern void _nitro_torch_register_onTorchStateChanged_stream(int64_t dartPort, void (*emitCb)(int64_t, void*));
+void nitro_torch_register_on_torch_state_changed_stream(int64_t dart_port) {
+    _nitro_torch_register_onTorchStateChanged_stream(dart_port, _emit_onTorchStateChanged_to_dart);
+}
+extern void _nitro_torch_release_onTorchStateChanged_stream(int64_t dart_port);
+void nitro_torch_release_on_torch_state_changed_stream(int64_t dart_port) {
+    _nitro_torch_release_onTorchStateChanged_stream(dart_port);
 }
 
 } // extern "C"

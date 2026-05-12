@@ -2,6 +2,8 @@
 // Generated from: nitro_torch.native.dart
 package nitro.nitro_torch_module
 
+import android.app.Activity
+import android.content.Context
 import androidx.annotation.Keep
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -9,13 +11,74 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 
+// --- Enums ---
+@Keep
+enum class TorchState(val nativeValue: Long) {
+  ON(0),
+  OFF(1);
+
+  companion object {
+    fun fromNative(v: Long): TorchState = values().first { it.nativeValue == v }
+  }
+}
+
+// --- Structs ---
+@androidx.annotation.Keep
+data class TorchLevel(val level: Long, val maxLevel: Long) {
+    companion object {
+        @JvmStatic fun decodeFrom(buf: java.nio.ByteBuffer): TorchLevel {
+            val level = buf.long
+            val maxLevel = buf.long
+            return TorchLevel(level, maxLevel)
+        }
+        @JvmStatic fun decode(bytes: ByteArray): TorchLevel {
+            val buf = java.nio.ByteBuffer.wrap(bytes).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+            return decodeFrom(buf)
+        }
+    }
+
+    fun writeFieldsTo(out: java.io.ByteArrayOutputStream, buf: java.nio.ByteBuffer) {
+        fun writeInt(v: Long) { buf.clear(); buf.putLong(v); out.write(buf.array()) }
+        @Suppress("UNUSED_PARAMETER") fun writeInt32(v: Int) { buf.clear(); buf.putInt(v); out.write(buf.array(), 0, 4) }
+        fun writeDouble(v: Double) { buf.clear(); buf.putDouble(v); out.write(buf.array()) }
+        fun writeBool(v: Boolean) { out.write(if (v) 1 else 0) }
+        fun writeString(v: String) { val b = v.toByteArray(Charsets.UTF_8); writeInt32(b.size); out.write(b) }
+        writeInt(level)
+        writeInt(maxLevel)
+    }
+
+    fun encode(): ByteArray {
+        val out = java.io.ByteArrayOutputStream(16)
+        val buf = java.nio.ByteBuffer.allocate(8).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        writeFieldsTo(out, buf)
+        return out.toByteArray()
+    }
+}
+
 /**
  * Contract for the [NitroTorch] module.
  * Implement this in your Kotlin source code.
  */
 interface HybridNitroTorchSpec {
+    val applicationContext: Context get() = NitroTorchJniBridge.applicationContext
+    val activity: Activity? get() = NitroTorchJniBridge.activity
+
+    // Optional lifecycle hooks — override only what you need.
+    fun onAttached() {}
+    fun onDetached() {}
+    fun onActivityAttached(activity: Activity) {}
+    fun onActivityDetached() {}
+
     fun add(a: Double, b: Double): Double
     suspend fun getGreeting(name: String): String
+    fun turnOn(): Unit
+    fun turnOff(): Unit
+    fun getStatus(): Boolean
+    fun toggle(): Unit
+    fun setLevel(level: Long): Unit
+    fun maxLevel(): Long
+    val onLevelChanged: Flow<TorchLevel>
+    val onTorchStateChanged: Flow<TorchState>
 }
 
 @Keep
@@ -23,11 +86,35 @@ object NitroTorchJniBridge {
     private var implementation: HybridNitroTorchSpec? = null
     private val _asyncExecutor = java.util.concurrent.Executors.newCachedThreadPool()
 
+    lateinit var applicationContext: Context
+        private set
+
+    var activity: Activity? = null
+        private set
+
     @JvmStatic external fun initialize(bridgeClass: Class<*>)
 
-    fun register(impl: HybridNitroTorchSpec) {
+    fun register(impl: HybridNitroTorchSpec, context: Context) {
+        applicationContext = context
         implementation = impl
         initialize(this::class.java)
+        impl.onAttached()
+    }
+
+    fun onDetached() {
+        implementation?.onDetached()
+        activity = null
+        implementation = null
+    }
+
+    fun onActivityAttached(newActivity: Activity) {
+        activity = newActivity
+        implementation?.onActivityAttached(newActivity)
+    }
+
+    fun onActivityDetached() {
+        activity = null
+        implementation?.onActivityDetached()
     }
 
     @JvmStatic fun add_call(a: Double, b: Double): Double {
@@ -40,6 +127,56 @@ object NitroTorchJniBridge {
             runBlocking { impl.getGreeting(name) }
         }).get()
     }
+    @JvmStatic fun turnOn_call(): Unit {
+        val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
+        impl.turnOn()
+    }
+    @JvmStatic fun turnOff_call(): Unit {
+        val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
+        impl.turnOff()
+    }
+    @JvmStatic fun getStatus_call(): Boolean {
+        val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
+        return impl.getStatus()
+    }
+    @JvmStatic fun toggle_call(): Unit {
+        val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
+        impl.toggle()
+    }
+    @JvmStatic fun setLevel_call(level: Long): Unit {
+        val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
+        impl.setLevel(level)
+    }
+    @JvmStatic fun maxLevel_call(): Long {
+        val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
+        return impl.maxLevel()
+    }
     private val _streamJobs = java.util.concurrent.ConcurrentHashMap<Pair<String, Long>, kotlinx.coroutines.Job>()
 
+    @JvmStatic external fun emit_onLevelChanged(dartPort: Long, item: TorchLevel): Unit
+
+    @JvmStatic fun nitro_torch_register_on_level_changed_stream_call(dartPort: Long) {
+        val impl = implementation ?: return
+        _streamJobs[Pair("onLevelChanged", dartPort)] = CoroutineScope(Dispatchers.Default).launch {
+            impl.onLevelChanged.collect { item -> 
+                emit_onLevelChanged(dartPort, item)
+            }
+        }
+    }
+    @JvmStatic fun nitro_torch_release_on_level_changed_stream_call(dartPort: Long) {
+        _streamJobs.remove(Pair("onLevelChanged", dartPort))?.cancel()
+    }
+    @JvmStatic external fun emit_onTorchStateChanged(dartPort: Long, item: TorchState): Unit
+
+    @JvmStatic fun nitro_torch_register_on_torch_state_changed_stream_call(dartPort: Long) {
+        val impl = implementation ?: return
+        _streamJobs[Pair("onTorchStateChanged", dartPort)] = CoroutineScope(Dispatchers.Default).launch {
+            impl.onTorchStateChanged.collect { item -> 
+                emit_onTorchStateChanged(dartPort, item)
+            }
+        }
+    }
+    @JvmStatic fun nitro_torch_release_on_torch_state_changed_stream_call(dartPort: Long) {
+        _streamJobs.remove(Pair("onTorchStateChanged", dartPort))?.cancel()
+    }
 }

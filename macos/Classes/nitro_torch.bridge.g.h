@@ -25,6 +25,21 @@ typedef struct {
 } NitroError;
 #endif
 
+// --- Enums ---
+typedef enum {
+  TORCHSTATE_ON = 0,
+  TORCHSTATE_OFF = 1,
+} TorchState;
+
+// --- Structs ---
+#ifndef NITRO_STRUCT_TORCHLEVEL_DEFINED
+#define NITRO_STRUCT_TORCHLEVEL_DEFINED
+typedef struct {
+  int64_t level; 
+  int64_t maxLevel; 
+} TorchLevel;
+#endif // NITRO_STRUCT_TORCHLEVEL_DEFINED
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -38,6 +53,23 @@ NITRO_EXPORT void nitro_torch_clear_error(void);
 // Methods
 NITRO_EXPORT double nitro_torch_add(double a, double b);
 NITRO_EXPORT const char* nitro_torch_get_greeting(const char* name);
+NITRO_EXPORT void nitro_torch_turn_on(void);
+NITRO_EXPORT void nitro_torch_turn_off(void);
+NITRO_EXPORT int8_t nitro_torch_get_status(void);
+NITRO_EXPORT void nitro_torch_toggle(void);
+NITRO_EXPORT void nitro_torch_set_level(int64_t level);
+NITRO_EXPORT int64_t nitro_torch_max_level(void);
+
+// Streams
+// Stream<TorchLevel> onLevelChanged
+NITRO_EXPORT void nitro_torch_register_on_level_changed_stream(int64_t dart_port);
+NITRO_EXPORT void nitro_torch_release_on_level_changed_stream(int64_t dart_port);
+// Stream<TorchState> onTorchStateChanged
+NITRO_EXPORT void nitro_torch_register_on_torch_state_changed_stream(int64_t dart_port);
+NITRO_EXPORT void nitro_torch_release_on_torch_state_changed_stream(int64_t dart_port);
+
+// Struct release functions
+NITRO_EXPORT void nitro_torch_release_TorchLevel(void* ptr);
 
 #ifdef __cplusplus
 }

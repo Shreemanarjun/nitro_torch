@@ -140,7 +140,7 @@ packages:
     source: hosted
     version: "1.17.0"
   nitro:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: nitro
       sha256: "56434a265736db31255343c09b6cb5820bfb46bcbeb1de0e70ca4fbeef608229"

@@ -11,6 +11,12 @@ class MockNitroTorch : public HybridNitroTorch {
 public:
     MOCK_METHOD(double, add, (double a, double b), (override));
     MOCK_METHOD(std::string, getGreeting, (const std::string& name), (override));
+    MOCK_METHOD(void, turnOn, (), (override));
+    MOCK_METHOD(void, turnOff, (), (override));
+    MOCK_METHOD(bool, getStatus, (), (override));
+    MOCK_METHOD(void, toggle, (), (override));
+    MOCK_METHOD(void, setLevel, (int64_t level), (override));
+    MOCK_METHOD(int64_t, maxLevel, (), (override));
 };
 
 #endif // NITRO_TORCH_MOCK_G_H

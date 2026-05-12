@@ -31,6 +31,19 @@ public:
     // ── Methods ──────────────────────────────────────────────────────────
     virtual double add(double a, double b) = 0;
     virtual std::string getGreeting(const std::string& name) = 0;
+    virtual void turnOn() = 0;
+    virtual void turnOff() = 0;
+    virtual bool getStatus() = 0;
+    virtual void toggle() = 0;
+    virtual void setLevel(int64_t level) = 0;
+    virtual int64_t maxLevel() = 0;
+
+    // ── Streams ──────────────────────────────────────────────────────────
+    // Call the emit_* helpers below to push items to Dart from any thread.
+    /// Emit a value on the onLevelChanged stream.
+    void emit_onLevelChanged(TorchLevel item);
+    /// Emit a value on the onTorchStateChanged stream.
+    void emit_onTorchStateChanged(TorchState item);
 
 protected:
     HybridNitroTorch() = default;
