@@ -17,45 +17,6 @@ void main() {
     torch.dispose();
   });
 
-  // ─── Bridge sanity ────────────────────────────────────────────────────────
-  // These tests exercise the FFI transport itself and never need flash hardware.
-
-  group('bridge sanity', () {
-    test('add() returns correct sum', () {
-      expect(torch.add(1.5, 2.5), equals(4.0));
-      expect(torch.add(0, 0), equals(0.0));
-      expect(torch.add(-3.0, 3.0), equals(0.0));
-      expect(torch.add(100, 0.001), closeTo(100.001, 1e-9));
-    });
-
-    test('add() handles large values', () {
-      expect(torch.add(1e15, 1e15), closeTo(2e15, 1.0));
-    });
-
-    test('getGreeting() returns a non-empty String', () async {
-      final result = await torch.getGreeting('World');
-      expect(result, isA<String>());
-      expect(result.trim(), isNotEmpty);
-    });
-
-    test('getGreeting() result contains the supplied name', () async {
-      final result = await torch.getGreeting('Nitro');
-      expect(result, contains('Nitro'));
-    });
-
-    test(
-      'getGreeting() called concurrently returns independent results',
-      () async {
-        final results = await Future.wait([
-          torch.getGreeting('Alice'),
-          torch.getGreeting('Bob'),
-        ]);
-        expect(results[0], contains('Alice'));
-        expect(results[1], contains('Bob'));
-      },
-    );
-  });
-
   // ─── Hardware capabilities ─────────────────────────────────────────────────
 
   group('hardware capabilities', () {

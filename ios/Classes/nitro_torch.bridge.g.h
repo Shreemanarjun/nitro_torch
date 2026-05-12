@@ -51,8 +51,6 @@ NITRO_EXPORT void nitro_torch_clear_error(void);
 
 
 // Methods
-NITRO_EXPORT double nitro_torch_add(double a, double b);
-NITRO_EXPORT const char* nitro_torch_get_greeting(const char* name);
 NITRO_EXPORT void nitro_torch_turn_on(void);
 NITRO_EXPORT void nitro_torch_turn_off(void);
 NITRO_EXPORT int8_t nitro_torch_get_status(void);

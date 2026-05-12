@@ -136,8 +136,6 @@ public class NitroRecordReader {
  * Conform to this in your Swift source code.
  */
 public protocol HybridNitroTorchProtocol: AnyObject {
-    func add(a: Double, b: Double) -> Double
-    func getGreeting(name: String) async throws -> String
     func turnOn() -> Void
     func turnOff() -> Void
     func getStatus() -> Bool
@@ -163,26 +161,6 @@ public class NitroTorchRegistry {
 }
 
 // MARK: - C bridge stubs — exported as C symbols called by the generated .cpp shim
-
-@_cdecl("_nitro_torch_call_add")
-public func _nitro_torch_call_add(_ a: Double, _ b: Double) -> Double {
-    guard let impl = NitroTorchRegistry.impl else { return 0.0 }
-    return impl.add(a: a, b: b)
-}
-
-@_cdecl("_nitro_torch_call_getGreeting")
-public func _nitro_torch_call_getGreeting(_ name: UnsafePointer<CChar>?) -> UnsafeMutablePointer<CChar>? {
-    let nameStr = name != nil ? String(cString: name!) : ""
-    guard let impl = NitroTorchRegistry.impl else { return strdup("") }
-    let sema = DispatchSemaphore(value: 0)
-    var result = ""
-    Task.detached {
-        result = (try? await impl.getGreeting(name: nameStr)) ?? ""
-        sema.signal()
-    }
-    sema.wait()
-    return strdup(result)
-}
 
 @_cdecl("_nitro_torch_call_turnOn")
 public func _nitro_torch_call_turnOn() -> Void {

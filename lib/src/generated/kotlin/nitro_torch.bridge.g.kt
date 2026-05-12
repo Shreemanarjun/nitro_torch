@@ -69,8 +69,6 @@ interface HybridNitroTorchSpec {
     fun onActivityAttached(activity: Activity) {}
     fun onActivityDetached() {}
 
-    fun add(a: Double, b: Double): Double
-    suspend fun getGreeting(name: String): String
     fun turnOn(): Unit
     fun turnOff(): Unit
     fun getStatus(): Boolean
@@ -117,16 +115,6 @@ object NitroTorchJniBridge {
         implementation?.onActivityDetached()
     }
 
-    @JvmStatic fun add_call(a: Double, b: Double): Double {
-        val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
-        return impl.add(a, b)
-    }
-    @JvmStatic fun getGreeting_call(name: String): String {
-        val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
-        return _asyncExecutor.submit(java.util.concurrent.Callable {
-            runBlocking { impl.getGreeting(name) }
-        }).get()
-    }
     @JvmStatic fun turnOn_call(): Unit {
         val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
         impl.turnOn()

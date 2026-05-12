@@ -19,13 +19,11 @@ TEST(NitroTorchTest, SmokeTest) {
 // ── Your tests go here ───────────────────────────────────────────────────────
 //
 // Example:
-// TEST(NitroTorchTest, Add) {
+// TEST(NitroTorchTest, TurnOn) {
 //     MockNitroTorch mock;
 //     nitro_torch_register_impl(&mock);
-//     EXPECT_CALL(mock, add(::testing::An<double>(), ::testing::An<double>()))
-//         .WillOnce(::testing::Return(0.0));
-//     auto result = nitro_torch_add(0.0, 0.0);
-//     // Assert on result ...
+//     EXPECT_CALL(mock, turnOn()).Times(1);
+//     nitro_torch_turn_on();
 //     nitro_torch_register_impl(nullptr);
 // }
 

@@ -52,8 +52,6 @@ static jclass g_bridgeClass = nullptr;
 // ── Cached JNI IDs (initialized once in JNI_OnLoad, safe to use from any thread) ──
 static jmethodID g_exc_getName = nullptr;
 static jmethodID g_exc_getMessage = nullptr;
-static jmethodID g_mid_add_call = nullptr;
-static jmethodID g_mid_getGreeting_call = nullptr;
 static jmethodID g_mid_turnOn_call = nullptr;
 static jmethodID g_mid_turnOff_call = nullptr;
 static jmethodID g_mid_getStatus_call = nullptr;
@@ -149,50 +147,6 @@ static JNIEnv* GetEnv() {
         g_thread_guard.attached = true; // will DetachCurrentThread on thread exit
     }
     return env;
-}
-
-double nitro_torch_add(double a, double b) {
-    JNIEnv* env = GetEnv();
-    if (env == nullptr) return 0.0;
-    jmethodID methodId = g_mid_add_call;
-    if (methodId == nullptr) { LOGE("Method not found: add_call sig=(DD)D"); return 0.0; }
-
-    nitro_torch_clear_error();
-    if (env->PushLocalFrame(16) != 0) return 0.0;
-    double res = env->CallStaticDoubleMethod(g_bridgeClass, methodId, a, b);
-    if (env->ExceptionCheck()) {
-        nitro_report_jni_exception(env, env->ExceptionOccurred());
-        env->PopLocalFrame(nullptr);
-        return 0.0;
-    }
-    env->PopLocalFrame(nullptr);
-    return res;
-}
-
-const char* nitro_torch_get_greeting(const char* name) {
-    JNIEnv* env = GetEnv();
-    if (env == nullptr) return nullptr;
-    jmethodID methodId = g_mid_getGreeting_call;
-    if (methodId == nullptr) { LOGE("Method not found: getGreeting_call sig=(Ljava/lang/String;)Ljava/lang/String;"); return nullptr; }
-
-    nitro_torch_clear_error();
-    if (env->PushLocalFrame(16) != 0) return nullptr;
-    jstring j_name = env->NewStringUTF(name);
-    jstring jstr = (jstring)env->CallStaticObjectMethod(g_bridgeClass, methodId, j_name);
-    if (env->ExceptionCheck()) {
-        nitro_report_jni_exception(env, env->ExceptionOccurred());
-        env->PopLocalFrame(nullptr);
-        return nullptr;
-    }
-    if (jstr == nullptr) {
-        env->PopLocalFrame(nullptr);
-        return nullptr;
-    }
-    const char* nativeStr = env->GetStringUTFChars(jstr, 0);
-    char* result = strdup(nativeStr);
-    env->ReleaseStringUTFChars(jstr, nativeStr);
-    env->PopLocalFrame(nullptr);
-    return result;
 }
 
 void nitro_torch_turn_on(void) {
@@ -347,8 +301,6 @@ JNIEXPORT void JNICALL Java_nitro_nitro_1torch_1module_NitroTorchJniBridge_initi
     // correct class loader.)
     if (g_bridgeClass != nullptr) {
         // Cache bridge method IDs
-        g_mid_add_call = env->GetStaticMethodID(g_bridgeClass, "add_call", "(DD)D");
-        g_mid_getGreeting_call = env->GetStaticMethodID(g_bridgeClass, "getGreeting_call", "(Ljava/lang/String;)Ljava/lang/String;");
         g_mid_turnOn_call = env->GetStaticMethodID(g_bridgeClass, "turnOn_call", "()V");
         g_mid_turnOff_call = env->GetStaticMethodID(g_bridgeClass, "turnOff_call", "()V");
         g_mid_getStatus_call = env->GetStaticMethodID(g_bridgeClass, "getStatus_call", "()Z");
@@ -377,36 +329,6 @@ JNIEXPORT void JNICALL Java_nitro_nitro_1torch_1module_NitroTorchJniBridge_initi
 } // extern "C"
 #elif __APPLE__
 extern "C" {
-extern double _nitro_torch_call_add(double a, double b);
-double nitro_torch_add(double a, double b) {
-    nitro_torch_clear_error();
-#ifdef __OBJC__
-    @try {
-        return _nitro_torch_call_add(a, b);
-    } @catch (NSException* e) {
-        nitro_report_error([e.name UTF8String], [e.reason UTF8String], nullptr, nullptr);
-        return 0.0;
-    }
-#else
-    return _nitro_torch_call_add(a, b);
-#endif
-}
-
-extern const char* _nitro_torch_call_getGreeting(const char* name);
-const char* nitro_torch_get_greeting(const char* name) {
-    nitro_torch_clear_error();
-#ifdef __OBJC__
-    @try {
-        return _nitro_torch_call_getGreeting(name);
-    } @catch (NSException* e) {
-        nitro_report_error([e.name UTF8String], [e.reason UTF8String], nullptr, nullptr);
-        return nullptr;
-    }
-#else
-    return _nitro_torch_call_getGreeting(name);
-#endif
-}
-
 extern void _nitro_torch_call_turnOn(void);
 void nitro_torch_turn_on(void) {
     nitro_torch_clear_error();

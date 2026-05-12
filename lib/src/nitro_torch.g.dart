@@ -119,16 +119,6 @@ class _NitroTorchImpl extends NitroTorch {
     );
   }
 
-  late final double Function(double, double) _addPtr = _dylib
-      .lookup<NativeFunction<Double Function(Double, Double)>>(
-        'nitro_torch_add',
-      )
-      .asFunction<double Function(double, double)>(isLeaf: true);
-  late final Pointer<Utf8> Function(Pointer<Utf8>) _getGreetingPtr = _dylib
-      .lookupFunction<
-        Pointer<Utf8> Function(Pointer<Utf8>),
-        Pointer<Utf8> Function(Pointer<Utf8>)
-      >('nitro_torch_get_greeting');
   late final void Function() _turnOnPtr = _dylib
       .lookup<NativeFunction<Void Function()>>('nitro_torch_turn_on')
       .asFunction<void Function()>(isLeaf: true);
@@ -174,46 +164,12 @@ class _NitroTorchImpl extends NitroTorch {
       .lookupFunction<Void Function(), void Function()>(
         'nitro_torch_clear_error',
       );
-  // ignore: unused_field
-  late final Pointer<NativeFunction<Pointer<NitroErrorFfi> Function()>>
-  _getErrorNativePtr = _dylib.lookup('nitro_torch_get_error');
-  // ignore: unused_field
-  late final Pointer<NativeFunction<Void Function()>> _clearErrorNativePtr =
-      _dylib.lookup('nitro_torch_clear_error');
 
   @override
   void dispose() {
     NitroRuntime.logLifecycle('dispose(nitro_torch)', 'disposing');
     super.dispose(); // sets isDisposed = true, calls onDestroy()
     NitroRuntime.logLifecycle('dispose(nitro_torch)', 'disposed');
-  }
-
-  @override
-  double add(double a, double b) {
-    checkDisposed();
-    return NitroRuntime.callSync(() {
-      final res = _addPtr(a, b);
-      NitroRuntime.checkError(_getErrorPtr, _clearErrorPtr);
-      return res;
-    }, methodName: 'add');
-  }
-
-  @override
-  Future<String> getGreeting(String name) async {
-    checkDisposed();
-    final arena = Arena();
-    try {
-      final rawPtr = await NitroRuntime.callAsync<Pointer<Utf8>>(
-        _getGreetingPtr,
-        [name.toNativeUtf8(allocator: arena)],
-        getError: _getErrorNativePtr,
-        clearError: _clearErrorNativePtr,
-        methodName: 'getGreeting',
-      );
-      return rawPtr.toDartStringWithFree();
-    } finally {
-      arena.releaseAll();
-    }
   }
 
   @override

@@ -9,8 +9,6 @@
 
 class MockNitroTorch : public HybridNitroTorch {
 public:
-    MOCK_METHOD(double, add, (double a, double b), (override));
-    MOCK_METHOD(std::string, getGreeting, (const std::string& name), (override));
     MOCK_METHOD(void, turnOn, (), (override));
     MOCK_METHOD(void, turnOff, (), (override));
     MOCK_METHOD(bool, getStatus, (), (override));

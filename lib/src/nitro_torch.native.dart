@@ -12,11 +12,6 @@ part 'nitro_torch.g.dart';
 abstract class NitroTorch extends HybridObject {
   static final NitroTorch instance = _NitroTorchImpl();
 
-  double add(double a, double b);
-
-  @nitroAsync
-  Future<String> getGreeting(String name);
-
   void turnOn();
 
   void turnOff();

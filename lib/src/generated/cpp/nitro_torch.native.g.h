@@ -29,8 +29,6 @@ public:
     virtual ~HybridNitroTorch() = default;
 
     // ── Methods ──────────────────────────────────────────────────────────
-    virtual double add(double a, double b) = 0;
-    virtual std::string getGreeting(const std::string& name) = 0;
     virtual void turnOn() = 0;
     virtual void turnOff() = 0;
     virtual bool getStatus() = 0;
