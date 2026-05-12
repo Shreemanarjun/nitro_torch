@@ -73,11 +73,6 @@ class NitroTorchImpl : HybridNitroTorchSpec {
         Log.d(TAG, "Detached")
     }
 
-    // ── API ───────────────────────────────────────────────────────────────────
-
-    override fun add(a: Double, b: Double): Double = a + b
-
-    override suspend fun getGreeting(name: String): String = "Hello, $name!"
 
     override fun turnOn() {
         try {
