@@ -12,6 +12,9 @@ add_library(nitro_torch SHARED
   "dart_api_dl.c"
 )
 
+if(NOT ANDROID)
+  target_sources(nitro_torch PRIVATE "HybridNitroTorch.cpp")
+endif()
 target_include_directories(nitro_torch PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}"
   "${GENERATED_CPP}"
