@@ -160,7 +160,10 @@ class _TorchPageState extends State<TorchPage> {
 
               // ── Status badge ──────────────────────────────────────────────
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: _isOn ? Colors.amber.shade800 : Colors.grey.shade800,
                   borderRadius: BorderRadius.circular(20),
@@ -310,7 +313,10 @@ class _LevelSelector extends StatelessWidget {
               const Spacer(),
               if (!supported)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade800,
                     borderRadius: BorderRadius.circular(8),
