@@ -23,7 +23,7 @@ dependencies:
   nitro_torch: ^0.0.1
 ```
 
-> **Requires** [`nitro`](https://pub.dev/packages/nitro) `^0.4.1` and `nitro_annotations: ^0.4.1`.
+> **Requires** [`nitro`](https://pub.dev/packages/nitro) `^0.4.2` and `nitro_annotations: ^0.4.2`.
 
 ### Android
 
@@ -81,6 +81,220 @@ torch.onLevelChanged().listen((lvl) {
   print('Level ${lvl.level} / ${lvl.maxLevel}');
 });
 ```
+
+---
+
+## API Reference
+
+### Types
+
+#### `TorchState`
+
+```dart
+@HybridEnum()
+enum TorchState { on, off }
+```
+
+Maps to `Int64` at the C boundary (`0 = on`, `1 = off`). Emitted by `onTorchStateChanged`.
+
+---
+
+#### `TorchLevel`
+
+```dart
+@HybridStruct()
+class TorchLevel {
+  final int level;     // current brightness step (1 … maxLevel)
+  final int maxLevel;  // hardware maximum
+  TorchLevel({required this.level, required this.maxLevel});
+}
+```
+
+Passed as a packed C struct — zero-copy across the FFI boundary. Emitted by `onLevelChanged`.
+
+---
+
+### Methods
+
+#### `double add(double a, double b)`
+
+Synchronous utility method. Returns `a + b`. Useful for verifying the FFI bridge is wired correctly.
+
+```dart
+final sum = NitroTorch.instance.add(1.5, 2.5); // 4.0
+```
+
+---
+
+#### `Future<String> getGreeting(String name)` · `@nitroAsync`
+
+Async bridge call dispatched on a background thread. Returns a greeting string from native code. Demonstrates the `@nitroAsync` annotation.
+
+```dart
+final greeting = await NitroTorch.instance.getGreeting('World');
+// "Hello, World!" (exact string is implementation-defined)
+```
+
+---
+
+#### `void turnOn()`
+
+Activates the device torch at its current/default brightness level. Throws if no flash hardware is present.
+
+```dart
+NitroTorch.instance.turnOn();
+```
+
+---
+
+#### `void turnOff()`
+
+Deactivates the device torch.
+
+```dart
+NitroTorch.instance.turnOff();
+```
+
+---
+
+#### `bool getStatus()`
+
+Returns `true` if the torch is currently on, `false` otherwise. Reads hardware state — not cached.
+
+```dart
+final isOn = NitroTorch.instance.getStatus();
+```
+
+---
+
+#### `void toggle()`
+
+Turns the torch on if it is off, or off if it is on.
+
+```dart
+NitroTorch.instance.toggle();
+```
+
+---
+
+#### `void setLevel(int level)`
+
+Sets brightness to `level` (1 = minimum, `maxLevel()` = maximum).
+
+```dart
+final max = NitroTorch.instance.maxLevel();
+if (max != null && max > 1) {
+  NitroTorch.instance.setLevel(max ~/ 2); // 50 % brightness
+}
+```
+
+Throws `BrightnessControlNotSupported` on Android < API 33.
+
+---
+
+#### `int? maxLevel()`
+
+Returns the number of discrete brightness levels supported by the hardware, or `null` when the device does not support brightness control.
+
+```dart
+final max = NitroTorch.instance.maxLevel();
+// null  → brightness control unavailable
+// 1     → on/off only
+// 10    → iOS (10 steps via AVFoundation)
+// N     → Android API 33+ (CameraManager.getMaxTorchStrengthLevel)
+```
+
+---
+
+#### `Stream<TorchLevel> onLevelChanged()` · `@NitroStream`
+
+Emits a `TorchLevel` whenever the brightness changes. Backpressure: `dropLatest` — if Dart hasn't consumed the previous event the new one is dropped.
+
+```dart
+NitroTorch.instance.onLevelChanged().listen((lvl) {
+  print('Brightness: ${lvl.level} / ${lvl.maxLevel}');
+});
+```
+
+---
+
+#### `Stream<TorchState> onTorchStateChanged()` · `@NitroStream`
+
+Emits `TorchState.on` or `TorchState.off` whenever the torch state changes, including system-level interruptions (app backgrounded, camera captured by another process, etc.). Backpressure: `dropLatest`.
+
+```dart
+NitroTorch.instance.onTorchStateChanged().listen((state) {
+  print(state == TorchState.on ? 'Torch ON' : 'Torch OFF');
+});
+```
+
+---
+
+### Spec (source of truth)
+
+```dart
+// lib/src/nitro_torch.native.dart
+import 'package:nitro/nitro.dart';
+
+part 'nitro_torch.g.dart';
+
+@HybridEnum()
+enum TorchState { on, off }
+
+@HybridStruct()
+class TorchLevel {
+  final int level;
+  final int maxLevel;
+  TorchLevel({required this.level, required this.maxLevel});
+}
+
+@NitroModule(
+  ios: NativeImpl.swift,
+  android: NativeImpl.kotlin,
+  macos: NativeImpl.swift,
+  windows: NativeImpl.cpp,
+  linux: NativeImpl.cpp,
+)
+abstract class NitroTorch extends HybridObject {
+  static final NitroTorch instance = _NitroTorchImpl();
+
+  double add(double a, double b);
+
+  @nitroAsync
+  Future<String> getGreeting(String name);
+
+  void turnOn();
+  void turnOff();
+  bool getStatus();
+  void toggle();
+  void setLevel(int level);
+
+  @NitroStream(backpressure: Backpressure.dropLatest)
+  Stream<TorchLevel> onLevelChanged();
+
+  @NitroStream(backpressure: Backpressure.dropLatest)
+  Stream<TorchState> onTorchStateChanged();
+
+  int? maxLevel();
+}
+```
+
+### Native signatures
+
+| Dart | Swift (`HybridNitroTorchProtocol`) | Kotlin (`HybridNitroTorchSpec`) |
+|------|------------------------------------|---------------------------------|
+| `double add(double, double)` | `func add(a: Double, b: Double) -> Double` | `fun add(a: Double, b: Double): Double` |
+| `Future<String> getGreeting(String)` | `func getGreeting(name: String) async throws -> String` | `suspend fun getGreeting(name: String): String` |
+| `void turnOn()` | `func turnOn() -> Void` | `fun turnOn()` |
+| `void turnOff()` | `func turnOff() -> Void` | `fun turnOff()` |
+| `bool getStatus()` | `func getStatus() -> Bool` | `fun getStatus(): Boolean` |
+| `void toggle()` | `func toggle() -> Void` | `fun toggle()` |
+| `void setLevel(int)` | `func setLevel(level: Int64) -> Void` | `fun setLevel(level: Long)` |
+| `int? maxLevel()` | `func maxLevel() -> Int64?` | `fun maxLevel(): Long?` |
+| `Stream<TorchLevel>` | `var onLevelChanged: AnyPublisher<TorchLevel, Never>` | `val onLevelChanged: Flow<TorchLevel>` |
+| `Stream<TorchState>` | `var onTorchStateChanged: AnyPublisher<TorchState, Never>` | `val onTorchStateChanged: Flow<TorchState>` |
+
+---
 
 ### Error handling
 
