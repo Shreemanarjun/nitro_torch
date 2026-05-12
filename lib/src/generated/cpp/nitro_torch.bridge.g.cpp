@@ -337,9 +337,10 @@ JNIEXPORT void JNICALL Java_nitro_nitro_1torch_1module_NitroTorchJniBridge_emit_
     Dart_PostCObject_DL(dartPort, &obj);
 }
 
-JNIEXPORT void JNICALL Java_nitro_nitro_1torch_1module_NitroTorchJniBridge_initialize(JNIEnv* env, jobject thiz, jclass bridgeClass) {
+JNIEXPORT void JNICALL Java_nitro_nitro_1torch_1module_NitroTorchJniBridge_initialize(JNIEnv* env, jobject thiz, jclass localClass) {
     if (g_bridgeClass == nullptr) {
-        g_bridgeClass = (jclass)env->NewGlobalRef(bridgeClass);
+        g_bridgeClass = (jclass)env->NewGlobalRef(localClass);
+        env->DeleteLocalRef(localClass);
     }
     // Re-cache method IDs every time (safe; idempotent; works even if JNI_OnLoad
     // could not find the app class. initialize() is called from Kotlin with the

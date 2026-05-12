@@ -1,92 +1,203 @@
 # nitro_torch
 
-A new Flutter FFI plugin project.
+A Flutter plugin for controlling the device flashlight (torch) built on top of
+[nitro](https://pub.dev/packages/nitro) — a zero-overhead Dart FFI bridge with
+Kotlin, Swift, and C++ backends.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter
-[FFI plugin](https://flutter.dev/to/ffi-package),
-a specialized package that includes native code directly invoked with Dart FFI.
+| Feature | Android | iOS | macOS |
+|---------|---------|-----|-------|
+| Turn on / off | ✅ | ✅ | ✅ (if hardware present) |
+| Toggle | ✅ | ✅ | ✅ |
+| Get status | ✅ | ✅ | ✅ |
+| Brightness levels | ✅ API 33+ | ✅ 10 steps | ✅ (if hardware present) |
+| Max level query | ✅ | ✅ | ✅ |
+| State stream | ✅ | ✅ | ✅ |
+| Level-change stream | ✅ API 33+ | ✅ | ✅ |
 
-## Project structure
-
-This template uses the following structure:
-
-* `src`: Contains the native source code, and a CmakeFile.txt file for building
-  that source code into a dynamic library.
-
-* `lib`: Contains the Dart code that defines the API of the plugin, and which
-  calls into the native code using `dart:ffi`.
-
-* platform folders (`android`, `ios`, `windows`, etc.): Contains the build files
-  for building and bundling the native code library with the platform application.
-
-## Building and bundling native code
-
-The `pubspec.yaml` specifies FFI plugins as follows:
+## Installation
 
 ```yaml
-  plugin:
-    platforms:
-      some_platform:
-        ffiPlugin: true
+dependencies:
+  nitro_torch: ^0.0.1
 ```
 
-This configuration invokes the native build for the various target platforms
-and bundles the binaries in Flutter applications using these FFI plugins.
+> **Requires** [`nitro`](https://pub.dev/packages/nitro) `^0.4.1` and `nitro_annotations: ^0.4.1`.
 
-This can be combined with dartPluginClass, such as when FFI is used for the
-implementation of one platform in a federated plugin:
+### Android
 
-```yaml
-  plugin:
-    implements: some_other_plugin
-    platforms:
-      some_platform:
-        dartPluginClass: SomeClass
-        ffiPlugin: true
+Add permissions to `android/app/src/main/AndroidManifest.xml`:
+
+```xml
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-feature android:name="android.hardware.camera.flash" android:required="false" />
 ```
 
-A plugin can have both FFI and method channels:
+### iOS
 
-```yaml
-  plugin:
-    platforms:
-      some_platform:
-        pluginClass: SomeName
-        ffiPlugin: true
+Add a camera usage description to `ios/Runner/Info.plist`:
+
+```xml
+<key>NSCameraUsageDescription</key>
+<string>Used to control the flashlight.</string>
 ```
 
-The native build systems that are invoked by FFI (and method channel) plugins are:
+### macOS
 
-* For Android: Gradle, which invokes the Android NDK for native builds.
-  * See the documentation in android/build.gradle.
-* For iOS and MacOS: Xcode, via CocoaPods.
-  * See the documentation in ios/nitro_torch.podspec.
-  * See the documentation in macos/nitro_torch.podspec.
-* For Linux and Windows: CMake.
-  * See the documentation in linux/CMakeLists.txt.
-  * See the documentation in windows/CMakeLists.txt.
+No extra configuration needed. Most Macs have no torch hardware; torch operations
+raise a `NoFlashAvailable` error on those devices.
 
-## Binding to native code
+---
 
-To use the native code, bindings in Dart are needed.
-To avoid writing these by hand, they are generated from the header file
-(`src/nitro_torch.h`) by `package:ffigen`.
-Regenerate the bindings by running `dart run ffigen --config ffigen.yaml`.
+## Usage
 
-## Invoking native code
+```dart
+import 'package:nitro_torch/nitro_torch.dart';
 
-Very short-running native functions can be directly invoked from any isolate.
-For example, see `sum` in `lib/nitro_torch.dart`.
+final torch = NitroTorch.instance;
 
-Longer-running functions should be invoked on a helper isolate to avoid
-dropping frames in Flutter applications.
-For example, see `sumAsync` in `lib/nitro_torch.dart`.
+// Basic on / off / toggle
+torch.turnOn();
+torch.turnOff();
+torch.toggle();
 
-## Flutter help
+// Current state
+final isOn = torch.getStatus(); // bool
 
-For help getting started with Flutter, view our
-[online documentation](https://docs.flutter.dev), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+// Brightness levels — null when hardware does not support levels
+final max = torch.maxLevel(); // int?
+if (max != null && max > 1) {
+  torch.setLevel(5); // 1 = dim, max = full brightness
+}
 
+// Live state stream
+torch.onTorchStateChanged().listen((state) {
+  print(state == TorchState.on ? 'ON' : 'OFF');
+});
+
+// Live brightness stream
+torch.onLevelChanged().listen((lvl) {
+  print('Level ${lvl.level} / ${lvl.maxLevel}');
+});
+```
+
+### Error handling
+
+All operations surface native failures as Dart `Error`s. Wrap calls in `try/catch`:
+
+```dart
+try {
+  torch.turnOn();
+} catch (e) {
+  // e.toString() contains a JSON payload:
+  // {"code": "NoFlashAvailable", "message": "..."}
+}
+```
+
+#### Error codes
+
+| Code | Cause |
+|------|-------|
+| `NoFlashAvailable` | Device has no torch hardware |
+| `CameraServiceUnavailable` | Android camera service unavailable |
+| `ApiLevelTooLow` | Android API < 23 |
+| `BrightnessControlNotSupported` | `setLevel` called on Android < 13 |
+| `AccessFailed` | OS denied access to the camera or torch |
+
+---
+
+## Architecture
+
+`nitro_torch` uses [nitro](https://pub.dev/packages/nitro) for a direct Dart ↔ native bridge with no
+method-channel overhead:
+
+```
+Dart  (nitro_torch.g.dart)
+   │  dart:ffi
+   ▼
+C++ shim  (nitro_torch.bridge.g.cpp / .mm)
+   │  JNI (Android) / @_cdecl symbols (iOS/macOS)
+   ▼
+Kotlin / Swift implementation
+```
+
+### Android
+
+- `NitroTorchPlugin` implements `FlutterPlugin` + `ActivityAware`, so both
+  `applicationContext` and the foreground `Activity` are available to the impl.
+- `NitroTorchImpl` accesses them via properties on `HybridNitroTorchSpec`
+  (no Context constructor injection needed).
+- `CameraManager.TorchCallback` drives both streams in real time — including
+  system-level interruptions.
+- Brightness control (`setLevel`) uses `turnOnTorchWithStrengthLevel` (API 33+).
+  On older devices a structured `BrightnessControlNotSupported` error is thrown.
+
+### iOS / macOS
+
+- `NitroTorchImpl` uses `AVCaptureDevice` with `hasTorch` checks.
+- 10 discrete brightness steps map onto AVFoundation's 0.0–1.0 Float range via
+  `setTorchModeOn(level:)`.
+- A Combine KVO observer on `isTorchActive` drives `onTorchStateChanged` in real
+  time, including system-level torch interruptions (app backgrounded, camera
+  captured by another app, etc.).
+- On macOS, `torchDevice` returns `nil` on virtually all hardware; all mutating
+  operations raise `NoFlashAvailable`. Streams are inert until hardware is available.
+
+---
+
+## Platform support
+
+| Platform | Min version | Implementation |
+|----------|-------------|----------------|
+| Android | API 23 (Marshmallow) | Kotlin + CameraManager |
+| iOS | 13.0 | Swift + AVFoundation |
+| macOS | 10.15 | Swift + AVFoundation |
+| Windows | — | Stub |
+| Linux | — | Stub |
+
+---
+
+## Example
+
+See [`example/`](example/) for a complete demo app featuring:
+
+- Animated torch icon with amber glow effect
+- Live ON/OFF badge driven by `onTorchStateChanged`
+- Brightness selector: animated segment bars, `−`/`+` step buttons, drag slider
+  (always visible; shows an "API 33+" badge when levels are not supported)
+- Turn On / Turn Off / Toggle control buttons
+- Error banner for native failures
+
+---
+
+## Contributing
+
+Pull requests are welcome. For major changes please open an issue first to discuss
+what you'd like to change.
+
+---
+
+## License
+
+MIT License
+
+Copyright (c) 2026 Shreeman Arjun Sahu
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
