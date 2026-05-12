@@ -184,8 +184,9 @@ void main() {
   group('brightness levels', () {
     test('setLevel(1) does not throw when hardware supports levels', () {
       final max = torch.maxLevel();
-      if (max == null || max < 1)
+      if (max == null || max < 1) {
         return; // null or 0 = unsupported; 1 = on/off only
+      }
       try {
         torch.turnOn();
         torch.setLevel(1);
@@ -199,8 +200,9 @@ void main() {
 
     test('setLevel(maxLevel) does not throw when hardware supports levels', () {
       final max = torch.maxLevel();
-      if (max == null || max < 1)
+      if (max == null || max < 1) {
         return; // null or 0 = unsupported; 1 = on/off only
+      }
       try {
         torch.turnOn();
         torch.setLevel(max);
@@ -214,8 +216,9 @@ void main() {
 
     test('setLevel(mid) does not throw when hardware supports levels', () {
       final max = torch.maxLevel();
-      if (max == null || max < 1)
+      if (max == null || max < 1) {
         return; // null or 0 = unsupported; 1 = on/off only
+      }
       final mid = (max / 2).ceil();
       try {
         torch.turnOn();
@@ -323,8 +326,9 @@ void main() {
       'onLevelChanged() emits TorchLevel with valid fields after setLevel()',
       () async {
         final max = torch.maxLevel();
-        if (max == null || max < 1)
+        if (max == null || max < 1) {
           return; // null or 0 = unsupported; 1 = on/off only
+        }
 
         StreamSubscription<TorchLevel>? sub;
         try {
@@ -401,8 +405,9 @@ void main() {
 
         final completer = Completer<TorchState>();
         sub2 = torch.onTorchStateChanged().listen((s) {
-          if (s == TorchState.on && !completer.isCompleted)
+          if (s == TorchState.on && !completer.isCompleted) {
             completer.complete(s);
+          }
         });
 
         torch.turnOn();
@@ -444,8 +449,9 @@ void main() {
 
         final completer = Completer<TorchState>();
         sub = torch.onTorchStateChanged().listen((s) {
-          if (s == TorchState.on && !completer.isCompleted)
+          if (s == TorchState.on && !completer.isCompleted) {
             completer.complete(s);
+          }
         });
 
         torch.turnOn();
