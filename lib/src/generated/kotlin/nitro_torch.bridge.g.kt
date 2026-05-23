@@ -69,11 +69,17 @@ interface HybridNitroTorchSpec {
     fun onActivityAttached(activity: Activity) {}
     fun onActivityDetached() {}
 
+    // source: nitro_torch.native.dart:15
     fun turnOn(): Unit
+    // source: nitro_torch.native.dart:17
     fun turnOff(): Unit
+    // source: nitro_torch.native.dart:19
     fun getStatus(): Boolean
+    // source: nitro_torch.native.dart:21
     fun toggle(): Unit
+    // source: nitro_torch.native.dart:23
     fun setLevel(level: Long): Unit
+    // source: nitro_torch.native.dart:31
     fun maxLevel(): Long
     val onLevelChanged: Flow<TorchLevel>
     val onTorchStateChanged: Flow<TorchState>
@@ -115,26 +121,32 @@ object NitroTorchJniBridge {
         implementation?.onActivityDetached()
     }
 
+    // source: nitro_torch.native.dart:15
     @JvmStatic fun turnOn_call(): Unit {
         val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
         impl.turnOn()
     }
+    // source: nitro_torch.native.dart:17
     @JvmStatic fun turnOff_call(): Unit {
         val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
         impl.turnOff()
     }
+    // source: nitro_torch.native.dart:19
     @JvmStatic fun getStatus_call(): Boolean {
         val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
         return impl.getStatus()
     }
+    // source: nitro_torch.native.dart:21
     @JvmStatic fun toggle_call(): Unit {
         val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
         impl.toggle()
     }
+    // source: nitro_torch.native.dart:23
     @JvmStatic fun setLevel_call(level: Long): Unit {
         val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
         impl.setLevel(level)
     }
+    // source: nitro_torch.native.dart:31
     @JvmStatic fun maxLevel_call(): Long {
         val impl = implementation ?: throw IllegalStateException("NitroTorch not registered")
         return impl.maxLevel()

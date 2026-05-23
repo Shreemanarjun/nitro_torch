@@ -7,7 +7,10 @@ let package = Package(
     products: [
         .library(name: "nitro-torch", targets: ["nitro_torch"]),
     ],
-    targets: [
+    dependencies: [
+    .package(name: "FlutterFramework", path: "../FlutterFramework"),
+  ],
+  targets: [
         // C/C++ bridge — SPM requires Swift and C++ in separate targets.
         // nitro headers (nitro.h, dart_api_dl.h …) are copied into include/
         // by `nitrogen link`, so no extra header search path is needed.
@@ -23,7 +26,10 @@ let package = Package(
         // Swift implementation + generated bridge.
         .target(
             name: "nitro_torch",
-            dependencies: ["NitroTorchCpp"],
+            dependencies: [
+              "NitroTorchCpp",
+              .product(name: "FlutterFramework", package: "FlutterFramework"),
+            ],
             path: "Sources/NitroTorch"
         ),
     ]
