@@ -166,18 +166,18 @@ packages:
     dependency: "direct main"
     description:
       name: nitro
-      sha256: "275743276f22df865f66516c1424015d800b404f7c03b1387d81ab14cded05f0"
+      sha256: "74c1e2ee20f7fc4689b634820f9453201e77fb77d7622512884258fcf545a0b2"
       url: "https://pub.dev"
     source: hosted
-    version: "0.4.2"
+    version: "0.4.3"
   nitro_annotations:
     dependency: transitive
     description:
       name: nitro_annotations
-      sha256: c7a648400035e9f567fa7f8e7af9400c7d4909eb1a5bfc8d96891cb8c6fb5a47
+      sha256: "488d0f3d2a3ba02a50e36f1d55ca7b225b751c6e12c518fcf01472da64c8178a"
       url: "https://pub.dev"
     source: hosted
-    version: "0.4.2"
+    version: "0.4.3"
   nitro_torch:
     dependency: "direct main"
     description:

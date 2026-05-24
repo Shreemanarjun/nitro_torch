@@ -11,8 +11,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  nitro: ^0.4.2
-  nitro_annotations: ^0.4.2
+  nitro: ^0.4.3
+  nitro_annotations: ^0.4.3
   plugin_platform_interface: ^2.0.2
 
 dev_dependencies:
@@ -20,17 +20,17 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   build_runner: ^2.4.0
-  nitro_generator: ^0.4.2
+  nitro_generator: ^0.4.3
 
 
 
-dependency_overrides:
-  nitro:
-    path: ../../flutter_package/nitro_ecosystem/packages/nitro
-  nitro_generator:
-    path: ../../flutter_package/nitro_ecosystem/packages/nitro_generator
-  nitro_annotations:
-    path: ../../flutter_package/nitro_ecosystem/packages/nitro_annotations
+# dependency_overrides:
+#   nitro:
+#     path: ../../flutter_package/nitro_ecosystem/packages/nitro
+#   nitro_generator:
+#     path: ../../flutter_package/nitro_ecosystem/packages/nitro_generator
+#   nitro_annotations:
+#     path: ../../flutter_package/nitro_ecosystem/packages/nitro_annotations
 
 
 # For information on the generic Dart part of this file, see the
