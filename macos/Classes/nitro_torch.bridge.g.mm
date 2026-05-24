@@ -227,8 +227,14 @@ int64_t nitro_torch_max_level(void) {
 
     nitro_torch_clear_error();
     if (env->PushLocalFrame(16) != 0) return 0;
+    int64_t res = env->CallStaticLongMethod(g_bridgeClass, methodId);
+    if (env->ExceptionCheck()) {
+        nitro_report_jni_exception(env, env->ExceptionOccurred());
+        env->PopLocalFrame(nullptr);
+        return 0;
+    }
     env->PopLocalFrame(nullptr);
-    return 0;
+    return res;
 }
 
 void nitro_torch_register_on_level_changed_stream(int64_t dart_port) {

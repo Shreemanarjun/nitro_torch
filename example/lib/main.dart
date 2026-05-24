@@ -56,7 +56,7 @@ class _TorchPageState extends State<TorchPage> {
   @override
   void initState() {
     super.initState();
-    _init();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
   void _init() {

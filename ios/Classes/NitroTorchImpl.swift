@@ -26,6 +26,9 @@ public class NitroTorchImpl: NSObject, HybridNitroTorchProtocol {
     // ── State ──────────────────────────────────────────────────────────────────
 
     private var currentStep: Int64 = NitroTorchImpl.kSteps  // default to max brightness
+    // Cached once in init to avoid AVCaptureDevice.default(for:) from isLeaf:true FFI contexts,
+    // which can deadlock when mediaserverd IPC dispatches back to the main queue.
+    private var _cachedDevice: AVCaptureDevice?
 
     // ── Init ───────────────────────────────────────────────────────────────────
 
@@ -38,15 +41,13 @@ public class NitroTorchImpl: NSObject, HybridNitroTorchProtocol {
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 
-    private var torchDevice: AVCaptureDevice? {
-        guard let d = AVCaptureDevice.default(for: .video), d.hasTorch else { return nil }
-        return d
-    }
+    private var torchDevice: AVCaptureDevice? { _cachedDevice }
 
     /// KVO-observe isTorchActive so stream fires even when the system
     /// kills the torch (background, camera stolen by another app, etc.).
     private func setupObserver() {
         guard let device = AVCaptureDevice.default(for: .video), device.hasTorch else { return }
+        _cachedDevice = device
         torchObserver = device.publisher(for: \.isTorchActive)
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
