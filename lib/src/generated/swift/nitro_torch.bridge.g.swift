@@ -41,17 +41,17 @@ fileprivate struct _TorchLevelC {
  * Conform to this in your Swift source code.
  */
 public protocol HybridNitroTorchProtocol: AnyObject {
-    // source: nitro_torch.native.dart:15
+    // source: nitro_torch.native.dart:18
     func turnOn() -> Void
-    // source: nitro_torch.native.dart:17
-    func turnOff() -> Void
-    // source: nitro_torch.native.dart:19
-    func getStatus() -> Bool
     // source: nitro_torch.native.dart:21
+    func turnOff() -> Void
+    // source: nitro_torch.native.dart:24
+    func getStatus() -> Bool
+    // source: nitro_torch.native.dart:27
     func toggle() -> Void
-    // source: nitro_torch.native.dart:23
+    // source: nitro_torch.native.dart:30
     func setLevel(level: Int64) -> Void
-    // source: nitro_torch.native.dart:31
+    // source: nitro_torch.native.dart:41
     func maxLevel() -> Int64?
     var onLevelChanged: AnyPublisher<TorchLevel, Never> { get }
     var onTorchStateChanged: AnyPublisher<TorchState, Never> { get }
@@ -73,37 +73,37 @@ public class NitroTorchRegistry {
 
 // MARK: - C bridge stubs — exported as C symbols called by the generated .cpp shim
 
-// source: nitro_torch.native.dart:15
+// source: nitro_torch.native.dart:18
 @_cdecl("_nitro_torch_call_turnOn")
 public func _nitro_torch_call_turnOn() -> Void {
     NitroTorchRegistry.impl?.turnOn()
 }
 
-// source: nitro_torch.native.dart:17
+// source: nitro_torch.native.dart:21
 @_cdecl("_nitro_torch_call_turnOff")
 public func _nitro_torch_call_turnOff() -> Void {
     NitroTorchRegistry.impl?.turnOff()
 }
 
-// source: nitro_torch.native.dart:19
+// source: nitro_torch.native.dart:24
 @_cdecl("_nitro_torch_call_getStatus")
 public func _nitro_torch_call_getStatus() -> Int8 {
     return Int8((NitroTorchRegistry.impl?.getStatus() ?? false) ? 1 : 0)
 }
 
-// source: nitro_torch.native.dart:21
+// source: nitro_torch.native.dart:27
 @_cdecl("_nitro_torch_call_toggle")
 public func _nitro_torch_call_toggle() -> Void {
     NitroTorchRegistry.impl?.toggle()
 }
 
-// source: nitro_torch.native.dart:23
+// source: nitro_torch.native.dart:30
 @_cdecl("_nitro_torch_call_setLevel")
 public func _nitro_torch_call_setLevel(_ level: Int64) -> Void {
     NitroTorchRegistry.impl?.setLevel(level: level)
 }
 
-// source: nitro_torch.native.dart:31
+// source: nitro_torch.native.dart:41
 @_cdecl("_nitro_torch_call_maxLevel")
 public func _nitro_torch_call_maxLevel() -> Int64 {
     guard let impl = NitroTorchRegistry.impl else { return 0 }

@@ -29,17 +29,17 @@ public:
     virtual ~HybridNitroTorch() = default;
 
     // ── Methods ──────────────────────────────────────────────────────────
-    // source: nitro_torch.native.dart:15
+    // source: nitro_torch.native.dart:18
     virtual void turnOn() = 0;
-    // source: nitro_torch.native.dart:17
-    virtual void turnOff() = 0;
-    // source: nitro_torch.native.dart:19
-    virtual bool getStatus() = 0;
     // source: nitro_torch.native.dart:21
+    virtual void turnOff() = 0;
+    // source: nitro_torch.native.dart:24
+    virtual bool getStatus() = 0;
+    // source: nitro_torch.native.dart:27
     virtual void toggle() = 0;
-    // source: nitro_torch.native.dart:23
+    // source: nitro_torch.native.dart:30
     virtual void setLevel(int64_t level) = 0;
-    // source: nitro_torch.native.dart:31
+    // source: nitro_torch.native.dart:41
     virtual int64_t maxLevel() = 0;
 
     // ── Streams ──────────────────────────────────────────────────────────
