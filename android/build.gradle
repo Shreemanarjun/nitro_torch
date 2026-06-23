@@ -1,6 +1,6 @@
 plugins {
     id "com.android.library"
-    id "org.jetbrains.kotlin.android"
+    // Flutter built-in Kotlin handles KGP — do not apply KGP explicitly
 }
 
 group = "dev.shreeman.nitro_torch"

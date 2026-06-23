@@ -12,6 +12,11 @@ void main() {
   runApp(const MyApp());
 }
 
+// Material dark surface — visible contrast against pure black OLED pixels.
+const _kSurface = Color(0xFF1C1C1E);
+const _kSurface2 = Color(0xFF2C2C2E);
+const _kSurface3 = Color(0xFF3A3A3C);
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -24,6 +29,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         colorSchemeSeed: Colors.amber,
         brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF000000),
       ),
       home: const TorchPage(),
     );
@@ -42,10 +48,8 @@ class _TorchPageState extends State<TorchPage> {
 
   bool _isOn = false;
   int _level = 1;
-  // Start at a usable default so the selector is always visible.
-  // Re-read from hardware after the first stream event or after turn-on.
   int _maxLevel = _kFallbackMax;
-  bool _levelSupported = true; // assume supported until proven otherwise
+  bool _levelSupported = true;
   String? _error;
 
   static const int _kFallbackMax = 10;
@@ -67,13 +71,11 @@ class _TorchPageState extends State<TorchPage> {
         _isOn = state == plugin.TorchState.on;
         _error = null;
       });
-      // Re-read max level once torch is on — camera ID is guaranteed set.
       if (state == plugin.TorchState.on) _refreshMaxLevel();
     });
 
     _levelSub = _torch.onLevelChanged().listen((lvl) {
       setState(() {
-        // Update both current level and max from the hardware event.
         if (lvl.maxLevel > 1) _maxLevel = lvl.maxLevel.toInt();
         _level = lvl.level.clamp(1, _maxLevel).toInt();
       });
@@ -89,7 +91,6 @@ class _TorchPageState extends State<TorchPage> {
           _levelSupported = true;
         } else {
           _levelSupported = false;
-          // Keep fallback max so the selector remains visible for testing.
         }
       });
     } catch (_) {
@@ -115,72 +116,85 @@ class _TorchPageState extends State<TorchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: _kSurface,
         title: const Text('NitroTorch'),
         centerTitle: true,
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             children: [
-              // ── Torch icon ────────────────────────────────────────────────
+              // ── Torch glow circle ─────────────────────────────────────────
               Expanded(
                 child: Center(
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
-                    width: 160,
-                    height: 160,
+                    width: 180,
+                    height: 180,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: _isOn
-                          ? Colors.amber.withValues(alpha: 0.15)
-                          : Colors.grey.shade900,
+                          ? Colors.amber.withValues(alpha: 0.18)
+                          : _kSurface2,
+                      border: Border.all(
+                        color: _isOn
+                            ? Colors.amber
+                            : _kSurface3,
+                        width: _isOn ? 2.5 : 1.5,
+                      ),
                       boxShadow: _isOn
                           ? [
                               BoxShadow(
-                                color: Colors.amber.withValues(alpha: 0.6),
-                                blurRadius: 60,
-                                spreadRadius: 10,
+                                color: Colors.amber.withValues(alpha: 0.55),
+                                blurRadius: 70,
+                                spreadRadius: 12,
                               ),
                             ]
                           : null,
                     ),
                     child: Icon(
                       _isOn ? Icons.flashlight_on : Icons.flashlight_off,
-                      size: 80,
-                      color: _isOn ? Colors.amber : Colors.grey,
+                      size: 88,
+                      color: _isOn ? Colors.amber : Colors.white54,
                     ),
                   ),
                 ),
               ),
 
+              const SizedBox(height: 16),
+
               // ── Status badge ──────────────────────────────────────────────
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 6,
+                  horizontal: 28,
+                  vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: _isOn ? Colors.amber.shade800 : Colors.grey.shade800,
-                  borderRadius: BorderRadius.circular(20),
+                  color: _isOn ? Colors.amber : _kSurface2,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: _isOn ? Colors.amber.shade300 : _kSurface3,
+                  ),
                 ),
                 child: Text(
                   _isOn ? 'ON' : 'OFF',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    letterSpacing: 2,
+                    fontSize: 15,
+                    letterSpacing: 2.5,
+                    color: _isOn ? Colors.black : Colors.white,
                   ),
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // ── Level selector — always visible ───────────────────────────
+              // ── Level selector ────────────────────────────────────────────
               _LevelSelector(
                 level: _level,
                 maxLevel: _maxLevel,
@@ -191,7 +205,7 @@ class _TorchPageState extends State<TorchPage> {
                 },
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               // ── Control buttons ───────────────────────────────────────────
               Row(
@@ -209,43 +223,46 @@ class _TorchPageState extends State<TorchPage> {
                     child: _ControlButton(
                       label: 'Turn Off',
                       icon: Icons.lightbulb_outline,
-                      color: Colors.blueGrey,
+                      color: Colors.white70,
                       onPressed: () => _run(_torch.turnOff),
                     ),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               SizedBox(
                 width: double.infinity,
                 child: _ControlButton(
                   label: 'Toggle',
                   icon: Icons.toggle_on,
-                  color: Colors.deepOrange,
+                  color: Colors.deepOrangeAccent,
                   onPressed: () => _run(_torch.toggle),
                 ),
               ),
 
               // ── Error banner ──────────────────────────────────────────────
               if (_error != null) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade900,
+                    color: theme.colorScheme.errorContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     _error!,
-                    style: const TextStyle(fontSize: 12, color: Colors.white70),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
                   ),
                 ),
               ],
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
             ],
           ),
         ),
@@ -269,7 +286,6 @@ class _LevelSelector extends StatelessWidget {
     required this.onChanged,
   });
 
-  // Cap visual segments so the bar doesn't overflow on high-level devices.
   static const int _maxSegments = 10;
 
   @override
@@ -278,15 +294,13 @@ class _LevelSelector extends StatelessWidget {
     final filledRaw = (level / maxLevel * segments).round().clamp(0, segments);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade900,
+        color: _kSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: supported
-              ? Colors.amber.withValues(alpha: 0.30)
-              : Colors.grey.shade700,
-          width: 1,
+          color: supported ? Colors.amber.withValues(alpha: 0.5) : _kSurface3,
+          width: 1.5,
         ),
       ),
       child: Column(
@@ -297,7 +311,7 @@ class _LevelSelector extends StatelessWidget {
             children: [
               Icon(
                 Icons.brightness_6,
-                color: supported ? Colors.amber : Colors.grey,
+                color: supported ? Colors.amber : Colors.white54,
                 size: 16,
               ),
               const SizedBox(width: 6),
@@ -307,7 +321,7 @@ class _LevelSelector extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.5,
-                  color: supported ? Colors.amber : Colors.grey,
+                  color: supported ? Colors.amber : Colors.white54,
                 ),
               ),
               const Spacer(),
@@ -318,21 +332,21 @@ class _LevelSelector extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade800,
+                    color: _kSurface2,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
                     'API 33+',
-                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                    style: TextStyle(fontSize: 10, color: Colors.white54),
                   ),
                 )
               else
                 Text(
-                  'Level  $level / $maxLevel',
-                  style: TextStyle(
+                  '$level / $maxLevel',
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade400,
+                    color: Colors.white70,
                   ),
                 ),
             ],
@@ -369,7 +383,7 @@ class _LevelSelector extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: filled
                                   ? _segmentColor(i, segments, supported)
-                                  : Colors.grey.shade800,
+                                  : _kSurface3,
                               borderRadius: BorderRadius.circular(5),
                             ),
                           ),
@@ -388,18 +402,18 @@ class _LevelSelector extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
 
-          // ── Drag slider (fine control) ───────────────────────────────────
+          // ── Slider ───────────────────────────────────────────────────────
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               trackHeight: 3,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-              activeTrackColor: supported ? Colors.amber : Colors.grey,
-              inactiveTrackColor: Colors.grey.shade800,
-              thumbColor: supported ? Colors.amber : Colors.grey,
-              overlayColor: Colors.amber.withValues(alpha: 0.15),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
+              activeTrackColor: supported ? Colors.amber : Colors.white54,
+              inactiveTrackColor: _kSurface3,
+              thumbColor: supported ? Colors.amber : Colors.white54,
+              overlayColor: Colors.amber.withValues(alpha: 0.18),
             ),
             child: Slider(
               value: level.toDouble().clamp(1, maxLevel.toDouble()),
@@ -410,16 +424,11 @@ class _LevelSelector extends StatelessWidget {
             ),
           ),
 
-          // ── Not-supported hint ───────────────────────────────────────────
           if (!supported)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Center(
-                child: Text(
-                  'Torch brightness control requires Android 13 (API 33)+',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                ),
+            Center(
+              child: Text(
+                'Brightness control requires Android 13+',
+                style: const TextStyle(fontSize: 11, color: Colors.white38),
               ),
             ),
         ],
@@ -428,7 +437,7 @@ class _LevelSelector extends StatelessWidget {
   }
 
   Color _segmentColor(int index, int total, bool active) {
-    if (!active) return Colors.grey.shade700;
+    if (!active) return Colors.white24;
     final t = total <= 1 ? 1.0 : index / (total - 1);
     return Color.lerp(Colors.amber.shade700, Colors.amber.shade300, t)!;
   }
@@ -451,23 +460,20 @@ class _StepButton extends StatelessWidget {
       onTap: enabled ? onTap : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
-        width: 36,
-        height: 36,
+        width: 38,
+        height: 38,
         decoration: BoxDecoration(
-          color: enabled
-              ? Colors.amber.withValues(alpha: 0.15)
-              : Colors.grey.shade800,
+          color: enabled ? Colors.amber.withValues(alpha: 0.18) : _kSurface2,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: enabled
-                ? Colors.amber.withValues(alpha: 0.5)
-                : Colors.transparent,
+            color: enabled ? Colors.amber : _kSurface3,
+            width: 1.5,
           ),
         ),
         child: Icon(
           icon,
           size: 18,
-          color: enabled ? Colors.amber : Colors.grey.shade700,
+          color: enabled ? Colors.amber : Colors.white30,
         ),
       ),
     );
@@ -493,11 +499,12 @@ class _ControlButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton.icon(
       style: ElevatedButton.styleFrom(
-        backgroundColor: color.withValues(alpha: 0.15),
+        backgroundColor: _kSurface,
         foregroundColor: color,
-        side: BorderSide(color: color.withValues(alpha: 0.5)),
+        side: BorderSide(color: color.withValues(alpha: 0.8), width: 1.5),
         padding: const EdgeInsets.symmetric(vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 0,
       ),
       icon: Icon(icon, size: 20),
       label: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),

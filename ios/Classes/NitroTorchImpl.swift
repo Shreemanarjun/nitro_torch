@@ -15,6 +15,7 @@ public class NitroTorchImpl: NSObject, HybridNitroTorchProtocol {
     private let stateSubject = PassthroughSubject<TorchState, Never>()
     private let levelSubject = PassthroughSubject<TorchLevel, Never>()
     private var torchObserver: AnyCancellable?
+    private var _callbackCancellables = Set<AnyCancellable>()
 
     public var onTorchStateChanged: AnyPublisher<TorchState, Never> {
         stateSubject.eraseToAnyPublisher()
@@ -79,9 +80,12 @@ public class NitroTorchImpl: NSObject, HybridNitroTorchProtocol {
 
     // ── Protocol ───────────────────────────────────────────────────────────────
 
-    public func add(a: Double, b: Double) -> Double { a + b }
-
-    public func getGreeting(name: String) async throws -> String { "Hello, \(name)!" }
+    public func onCallback(callback: @escaping (TorchState) -> Void) {
+        stateSubject
+            .receive(on: DispatchQueue.main)
+            .sink { callback($0) }
+            .store(in: &_callbackCancellables)
+    }
 
     public func getStatus() -> Bool { torchDevice?.isTorchActive ?? false }
 

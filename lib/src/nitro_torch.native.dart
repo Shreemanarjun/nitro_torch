@@ -14,6 +14,8 @@ abstract class NitroTorch extends HybridObject {
   /// The singleton instance of [NitroTorch].
   static final NitroTorch instance = _NitroTorchImpl();
 
+  void onCallback(void Function(TorchState torchState) callback);
+
   /// Turns the device's torch on.
   void turnOn();
 

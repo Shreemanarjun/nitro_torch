@@ -73,6 +73,10 @@ class NitroTorchImpl : HybridNitroTorchSpec {
         Log.d(TAG, "Detached")
     }
 
+    override fun onCallback(callback: (p0: TorchState) -> Unit) {
+        TODO("Not yet implemented")
+    }
+
 
     override fun turnOn() {
         try {

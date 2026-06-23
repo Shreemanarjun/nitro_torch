@@ -165,10 +165,9 @@ packages:
   nitro:
     dependency: "direct main"
     description:
-      name: nitro
-      sha256: c339a7a7ab547fde4aa54f9461d5a374d3e87f71864958c96ddd355761aed838
-      url: "https://pub.dev"
-    source: hosted
+      path: "../../../flutter_package/nitro_ecosystem/packages/nitro"
+      relative: true
+    source: path
     version: "0.4.4"
   nitro_annotations:
     dependency: transitive

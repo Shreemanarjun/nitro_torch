@@ -51,6 +51,11 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
 
+
+
+dependency_overrides:
+  nitro:
+    path: ../../../flutter_package/nitro_ecosystem/packages/nitro
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
