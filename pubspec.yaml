@@ -1,6 +1,6 @@
 name: nitro_torch
 description: "Zero-overhead Flutter flashlight (torch) plugin built with Nitro. Controls device torch via direct Dart FFI — no method channels — with brightness levels, state streams, and nullable level queries."
-version: 0.0.2
+version: 0.0.3
 homepage: https://nitro.shreeman.dev
 repository: https://github.com/Shreemanarjun/nitro_torch
 

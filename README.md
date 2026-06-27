@@ -20,10 +20,10 @@ Kotlin, Swift, and C++ backends.
 
 ```yaml
 dependencies:
-  nitro_torch: ^0.0.1
+  nitro_torch: ^0.0.3
 ```
 
-> **Requires** [`nitro`](https://pub.dev/packages/nitro) `^0.4.2` and `nitro_annotations: ^0.4.2`.
+> **Requires** [`nitro`](https://pub.dev/packages/nitro) `^0.4.5` and `nitro_annotations: ^0.4.5`.
 
 ### Android
 

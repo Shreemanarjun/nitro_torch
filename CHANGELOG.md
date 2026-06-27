@@ -1,3 +1,6 @@
+## 0.0.3
+- Upgraded dependencies of nitro to 0.4.5
+
 ## 0.0.2
 - Upgraded dependencies of nitro to 0.4.3
 
