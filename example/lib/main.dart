@@ -142,9 +142,7 @@ class _TorchPageState extends State<TorchPage> {
                           ? Colors.amber.withValues(alpha: 0.18)
                           : _kSurface2,
                       border: Border.all(
-                        color: _isOn
-                            ? Colors.amber
-                            : _kSurface3,
+                        color: _isOn ? Colors.amber : _kSurface3,
                         width: _isOn ? 2.5 : 1.5,
                       ),
                       boxShadow: _isOn
