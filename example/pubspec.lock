@@ -165,18 +165,19 @@ packages:
   nitro:
     dependency: "direct main"
     description:
-      path: "../../../flutter_package/nitro_ecosystem/packages/nitro"
-      relative: true
-    source: path
-    version: "0.4.4"
+      name: nitro
+      sha256: "1d8ca1496c6655f17cae1eaa9b10c066e7198e98fb678dabe9481a63eb2e4b43"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.5"
   nitro_annotations:
     dependency: transitive
     description:
       name: nitro_annotations
-      sha256: "57a17ea8fa2786bb21d983db47b2c78dacda446b5640753e2f2fba32ff43ef0d"
+      sha256: "9d9573f7e1114bbd4fdc31b84acd36b7b6ce655c4a99571061fa5d066ab1fc17"
       url: "https://pub.dev"
     source: hosted
-    version: "0.4.4"
+    version: "0.4.5"
   nitro_torch:
     dependency: "direct main"
     description:
